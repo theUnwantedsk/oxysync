@@ -1,0 +1,8 @@
+{
+  "project": "oxysync-app",
+  "version": "1.0.0",
+  "framework": "get-shit-done",
+  "profile": "quality",
+  "granularity": "detailed",
+  "gitStrategy": "atomic"
+}
