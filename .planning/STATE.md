@@ -1,21 +1,25 @@
-# OxySync Project State
+# OXYSYNC 2.0 Project State
 
 ## Current Position
-- **Active Milestone**: v1.0.0 — Production-Ready OxySync Real-Time Clinical Web Application
-- **Overall Status**: Complete & Verified (All 6 Phases Delivered)
+- **Active Milestone**: v2.0.0 — Intelligent Oxygen Management Platform
+- **Current Status**: Complete & Fully Verified
 - **Quality Gates**:
   - TypeScript Compiler (`npx tsc --noEmit`): PASSED (0 errors, strict mode)
-  - Vite Production Bundler (`npm run build`): PASSED (Optimized assets generated in `dist/`)
-  - Web Audio API Alarm Synthesis: VERIFIED (IEC 60601-1-8 compliant)
-  - Mechatronic Physics Engine: VERIFIED (Boyle's cylinder depletion + closed-loop titration)
+  - Vite Production Bundler (`npm run build`): PASSED (Optimized assets in `dist/`)
+  - Deterministic Boyle's Law Physics Engine: VERIFIED
+  - 8 Live Emergency Scenarios: VERIFIED
+  - 5-Minute Reserve Buffer Failsafe: VERIFIED
+  - Interactive SVG Manifold Schematic & Flow Pulses: VERIFIED
+  - Recharts Predictive Depletion Modeling: VERIFIED
+  - Caregiver Telemetry & Notification API: VERIFIED
+  - CSV Export & Exhibition Presentation Mode: VERIFIED
 
 ## Phase Delivery Checklist
-- [x] **Phase 1: Foundation & Core Layout**: Vite + React + TypeScript + Tailwind CSS structure with responsive clinical UI layout, patient context, and navigation.
-- [x] **Phase 2: Vitals & Supply Telemetry**: SpO₂ radial gauge, animated BPM heart pulse, 60 FPS PPG plethysmograph canvas, and dual-source oxygen cylinder/concentrator metrics.
-- [x] **Phase 3: Closed-Loop Auto Titration**: Doctor prescription lock modal with clinician PIN (`1234`), automated SpO₂ feedback titration loop, manual override, and 5L emergency boost.
-- [x] **Phase 4: Alarms & Safety Audio Engine**: Multi-priority alert triage (Critical / Warning / Advisory), Web Audio synthesizer, 120-second snooze, and timestamped alarm audit log with CSV export.
-- [x] **Phase 5: ESP32 Simulator & Hardware Link**: 6 one-click test scenarios, manual telemetry perturbation sliders, live ESP32 serial UART JSON monitor, and Web Bluetooth BLE pairing hook.
-- [x] **Phase 6: Bedside Mode, Dossier Export & Build Polish**: Fullscreen OLED night mode, printable doctor telemetry report, JSON telemetry dump, and wasm-node fallback build pipeline.
+- [x] **Phase 1: Core Physics & Multi-Source Simulation Engine**: Boyle's gas laws, dual-cylinder tracking (bar & PSI), auto-switch thresholds, 5-minute reserve bridge, and LocalStorage persistence.
+- [x] **Phase 2: Live Operational Dashboard & Animated Supply Path**: Patient Monitoring Panel with 60 FPS PPG canvas, Dual-Cylinder and Reserve Buffer panels, and interactive animated SVG manifold schematic.
+- [x] **Phase 3: Emergency Simulation Lab (Live Demonstration Page)**: 8 one-click deterministic scenarios with state mutations, structured narratives (*What*, *Why*, *Response*), and step-by-step logic execution sequence.
+- [x] **Phase 4: Predictive Analytics, Caregiver View & Audio Alarms**: Depletion curves in Recharts, formula transparency, friendly caregiver interface with browser push demo, and IEC 60601-1-8 medical alarm tones.
+- [x] **Phase 5: Analytics, Reports, Exhibition Presentation Mode & Polish**: CSV export, printable demonstration dossier, college exhibition presentation mode with interactive system architecture diagram, about/innovation technical specifications, and settings.
 
 ## Deliverable Workspace
 - Path: `C:\Users\Shubham\.gemini\antigravity\scratch\oxysync-app`

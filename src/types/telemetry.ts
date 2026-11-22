@@ -1,42 +1,96 @@
-export type SourceType = 'cylinder' | 'concentrator';
+// OXYSYNC 2.0 Next-Gen Medical Mechatronics Telemetry Type System
+// All vitals, supply levels, valve states, and telemetry packets are simulated.
 
-export type TitrationMode = 'auto' | 'manual';
+export type ActiveSupplySource = 'primary' | 'secondary' | 'reserve' | 'none';
 
-export type AlarmSeverity = 'critical' | 'warning' | 'info';
+export type CylinderStatus = 
+  | 'active'
+  | 'standby'
+  | 'low'
+  | 'empty'
+  | 'refilling'
+  | 'disconnected';
+
+export interface CylinderState {
+  id: 'primary' | 'secondary';
+  name: string;
+  waterCapacityLiters: number;      // e.g., 4.4L for standard D/E size
+  maxPressureBar: number;           // e.g., 150 bar
+  currentPressureBar: number;       // 0 - 150 bar
+  pressurePsi: number;              // Calculated PSI (bar * 14.5038)
+  remainingGasLiters: number;       // V = P * V_water (Liters NTP)
+  percentRemaining: number;         // 0 - 100%
+  status: CylinderStatus;
+  connected: boolean;
+  remainingMinutes: number;         // Runtime at current flow rate
+  remainingSecondsExact: number;    // Sub-second precision
+  valveOpen: boolean;
+  temperatureC: number;             // Ambient temperature (20.0°C)
+}
+
+export interface ReserveBufferState {
+  capacityLiters: number;           // e.g., 12.5L
+  currentGasLiters: number;         // Remaining gas in buffer
+  percentRemaining: number;         // 0 - 100%
+  remainingSeconds: number;         // Calculated seconds remaining
+  targetDurationMinutes: number;    // 5.0 minutes design target
+  isActive: boolean;                // Engaged when primary & secondary fail
+  isRefilling: boolean;             // Refilling from active supply via bleed valve
+  valveOpen: boolean;
+  rechargePressureBar: number;      // Accumulator pressure (up to 30 bar)
+  disclaimer: string;
+}
+
+export type PatientStatus = 'stable' | 'borderline' | 'hypoxemic' | 'critical';
 
 export interface VitalsData {
-  spo2: number;               // 0 - 100 %
-  pulseRate: number;          // 30 - 220 BPM
-  perfusionIndex: number;     // 0.1 - 20.0 %
-  respiratoryRate: number;    // breaths per minute (10 - 40)
-  plethWaveform: number[];    // recent normalized PPG samples
+  spo2: number;                     // Simulated 0 - 100%
+  pulseRate: number;                // Simulated 40 - 200 BPM
+  perfusionIndex: number;           // Simulated 0.1 - 20.0%
+  respiratoryRate: number;          // Simulated breaths per minute (10 - 40)
+  etco2Mmhg: number;                // End-tidal CO2 (30 - 45 mmHg)
+  plethWaveform: number[];          // 60-sample normalized PPG buffer
+  ecgWaveform: number[];            // 60-sample Lead II ECG buffer
+  capnoWaveform: number[];          // 60-sample EtCO2 waveform buffer
+  patientStatus: PatientStatus;
   lastUpdated: string;
+  isSimulated: true;                // Explicit badge indicator
 }
 
-export interface OxygenSupply {
-  sourceType: SourceType;
-  flowRate: number;                 // Liters per minute (L/min, 0.0 - 10.0)
-  pressurePsi: number;              // Cylinder pressure (0 - 2200 PSI)
-  pressureBar: number;              // Calculated bar
-  tankWaterCapacityLiters: number;  // Standard D/E cylinder = 4.4L or 680L gas capacity
-  remainingGasLiters: number;       // Gas remaining = (pressure / 14.7) * water capacity
-  remainingRuntimeMinutes: number;  // Remaining minutes at current flow rate
-  cylinderPercent: number;          // 0 - 100%
-  valvePositionPercent: number;     // 0 - 100% actuator opening
+export type SystemOperatingMode = 
+  | 'auto'
+  | 'manual'
+  | 'emergency_reserve'
+  | 'failover'
+  | 'depleted';
+
+export interface SwitchingEvent {
+  id: string;
+  timestamp: string;
+  fromSource: ActiveSupplySource;
+  toSource: ActiveSupplySource;
+  reason: string;
+  triggerType: 'auto_threshold' | 'manual_override' | 'primary_depletion' | 'emergency_failover' | 'restoration';
+  primaryPercent: number;
+  secondaryPercent: number;
+  reservePercent: number;
+  manifoldPressureBar: number;
 }
 
-export interface DoctorPrescription {
-  isLocked: boolean;
-  passcode: string;                 // Default '1234'
-  prescribedBy: string;
-  prescribedAt: string;
-  targetSpo2Min: number;            // e.g. 92%
-  targetSpo2Max: number;            // e.g. 96%
-  minAllowedFlow: number;           // e.g. 1.0 L/min
-  maxAllowedFlow: number;           // e.g. 5.0 L/min
-  titrationMode: TitrationMode;
-  notes: string;
-}
+export type AlarmSeverity = 'critical' | 'warning' | 'advisory';
+
+export type AlertType = 
+  | 'primary_low'
+  | 'primary_empty'
+  | 'secondary_low'
+  | 'secondary_empty'
+  | 'auto_switched'
+  | 'reserve_active'
+  | 'all_supplies_depleted'
+  | 'low_spo2'
+  | 'severe_hypoxemia'
+  | 'cannula_disconnect'
+  | 'restored';
 
 export interface AlertItem {
   id: string;
@@ -45,23 +99,84 @@ export interface AlertItem {
   message: string;
   timestamp: string;
   acknowledged: boolean;
-  type: 'hypoxemia' | 'severe_hypoxemia' | 'tachycardia' | 'bradycardia' | 'tank_low' | 'tank_exhausted' | 'cannula_disconnect' | 'sensor_fault' | 'valve_limit';
+  source: string;
+  type: AlertType;
+  isSimulated: true;
 }
 
-export interface DeviceStatus {
-  connected: boolean;
-  batteryLevel: number;             // 0 - 100 %
-  esp32Status: 'online' | 'offline' | 'pairing';
-  cannulaAttached: boolean;
-  sensorFault: boolean;
-  bluetoothConnected: boolean;
-  wifiSignalDbm: number;            // -90 to -30 dBm
+export interface PredictionData {
+  flowRateLpm: number;
+  primaryDepletionMinutes: number;
+  primaryDepletionTimeStr: string;
+  secondaryDepletionMinutes: number;
+  secondaryDepletionTimeStr: string;
+  reserveDepletionSeconds: number;
+  totalSystemMinutes: number;
+  totalSystemDepletionTimeStr: string;
+  predictedSwitchTimeStr: string;
+  totalSecondsRemaining: number;
+  formattedCountdown: string;       // e.g. "08:42:15.3"
+  formula: string;
+  vanDerWaalsCorrection: string;
+  assumptions: string[];
 }
 
-export type SimulationScenario = 
+export type EmergencyScenarioId = 
   | 'normal'
-  | 'hypoxemia'
-  | 'exertion'
-  | 'low_tank'
-  | 'cannula_drop'
-  | 'valve_limit';
+  | 'primary_empty'
+  | 'auto_switch'
+  | 'low_spo2'
+  | 'backup_empty'
+  | 'both_unavailable'
+  | 'reserve_active'
+  | 'restoration';
+
+export interface ScenarioDefinition {
+  id: EmergencyScenarioId;
+  stepNumber: number;
+  title: string;
+  subtitle: string;
+  badge: string;
+  whatHappened: string;
+  whyItHappened: string;
+  systemResponse: string;
+  sequenceSteps: string[];
+}
+
+export interface SystemSettings {
+  simulationSpeed: number;          // 0.5, 1, 2, 5, 10, 30, 60
+  switchingThresholdPercent: number; // 5% - 25% (default 10%)
+  flowRateLpm: number;              // 0.5 - 15.0 L/min
+  primaryWaterCapacity: number;     // e.g. 4.4L
+  secondaryWaterCapacity: number;   // e.g. 4.4L
+  reserveCapacityLiters: number;    // e.g. 12.5L
+  soundEnabled: boolean;
+  audioVolume: number;              // 0.0 - 1.0
+  pulseOximeterBeepEnabled: boolean;// Hospital QRS pitch sound
+  autoSwitchEnabled: boolean;
+  sweepSpeedMmPerSec: number;       // 12.5, 25, 50 mm/s
+}
+
+export interface CaregiverNotification {
+  id: string;
+  title: string;
+  body: string;
+  severity: AlarmSeverity;
+  timestamp: string;
+  actionRequired: string;
+}
+
+export interface TelemetryPacket {
+  packetId: number;
+  timestamp: string;
+  primaryBar: number;
+  secondaryBar: number;
+  reserveGasLiters: number;
+  manifoldPressureBar: number;
+  flowRateSccm: number;
+  solenoidStateByte: string;        // "0x01" (V1 open), "0x02" (V2 open), "0x04" (VR open)
+  spo2Percent: number;
+  heartRateBpm: number;
+  crc16: string;
+  rawHex: string;
+}

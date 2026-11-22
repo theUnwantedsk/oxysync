@@ -1,177 +1,255 @@
 import React from 'react';
-import { useTelemetry } from '../context/TelemetryContext';
 import { 
   Activity, 
+  RotateCcw, 
   Volume2, 
   VolumeX, 
-  Zap, 
-  Moon, 
-  Lock, 
+  BellOff, 
+  ShieldAlert, 
+  LayoutDashboard, 
+  GitBranch, 
+  PlayCircle, 
+  TrendingUp, 
+  HeartHandshake, 
   FileText, 
-  Wifi, 
-  AlertCircle,
-  Clock
+  MonitorPlay, 
+  Lightbulb, 
+  Settings as SettingsIcon,
+  Clock,
+  Timer,
+  Terminal,
+  Radio
 } from 'lucide-react';
+import { useTelemetry } from '../context/TelemetryContext';
+
+export type ActiveNavTab = 
+  | 'dashboard'
+  | 'supply_path'
+  | 'time_travel'
+  | 'demonstration'
+  | 'hardware'
+  | 'predictive'
+  | 'caregiver'
+  | 'analytics'
+  | 'presentation'
+  | 'innovation'
+  | 'settings';
 
 interface HeaderProps {
-  onOpenPrescription: () => void;
-  onOpenAlertHistory: () => void;
-  onOpenReportExport: () => void;
-  onToggleBedsideMode: () => void;
+  currentTab: ActiveNavTab;
+  onSelectTab: (tab: ActiveNavTab) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  onOpenPrescription,
-  onOpenAlertHistory,
-  onOpenReportExport,
-  onToggleBedsideMode
-}) => {
+export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
   const { 
-    device, 
+    activeSource, 
+    primaryCylinder, 
+    secondaryCylinder, 
+    reserveBuffer, 
+    predictions, 
     isMuted, 
-    toggleMute, 
     snoozeRemaining, 
-    emergencyBoost,
+    toggleMute, 
+    snoozeAlarms, 
+    resetSimulation,
     alerts,
-    prescription
+    masterClockMs,
+    therapyElapsedFormatted,
+    settings,
+    setSimulationSpeed
   } = useTelemetry();
 
-  const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length;
+  const activeAlertsCount = alerts.filter(a => !a.acknowledged).length;
+
+  const navItems: { id: ActiveNavTab; label: string; icon: React.ElementType; badge?: string }[] = [
+    { id: 'dashboard', label: 'Clinical Monitor', icon: LayoutDashboard },
+    { id: 'supply_path', label: 'Supply Manifold', icon: GitBranch },
+    { id: 'time_travel', label: 'Time-Machine & Scrubber', icon: Timer, badge: 'High-Precision' },
+    { id: 'demonstration', label: 'Live Demonstration', icon: PlayCircle, badge: '8 Scenarios' },
+    { id: 'hardware', label: 'ESP32 Hardware Telemetry', icon: Terminal, badge: 'UART Bus' },
+    { id: 'predictive', label: 'Predictive Analytics', icon: TrendingUp },
+    { id: 'caregiver', label: 'Caregiver View', icon: HeartHandshake },
+    { id: 'analytics', label: 'Reports & Audit', icon: FileText },
+    { id: 'presentation', label: 'Presentation Mode', icon: MonitorPlay, badge: 'Exhibition' },
+    { id: 'innovation', label: 'About & Innovation', icon: Lightbulb },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon }
+  ];
+
+  const getSourceBadge = () => {
+    switch (activeSource) {
+      case 'primary':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            PRIMARY ACTIVE ({primaryCylinder.percentRemaining}%)
+          </span>
+        );
+      case 'secondary':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-teal-950/80 border border-teal-500/40 text-teal-300 font-mono">
+            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+            BACKUP ACTIVE ({secondaryCylinder.percentRemaining}%)
+          </span>
+        );
+      case 'reserve':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-red-950/90 border border-red-500 text-red-200 animate-pulse font-mono">
+            <ShieldAlert className="w-3.5 h-3.5 text-red-400 animate-bounce" />
+            RESERVE BUFFER ({reserveBuffer.remainingSeconds}s)
+          </span>
+        );
+      case 'none':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-red-900 border border-red-400 text-white animate-ping font-mono">
+            ALL SUPPLIES DEPLETED
+          </span>
+        );
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#050a12]/90 backdrop-blur-md px-4 sm:px-6 py-3">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+    <header className="bg-[#050812]/95 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-40 transition-all">
+      {/* Top Banner with High-Precision Chronometers */}
+      <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-col lg:flex-row items-center justify-between gap-3 border-b border-slate-800/40">
         
-        {/* Brand & Patient info */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-slate-950">
-              <Activity className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl tracking-tight text-white">
-                  Oxy<span className="text-cyan-400">Sync</span>
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                  CLINICAL v2.4
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                Smart Oxygen Titration & Patient Telemetry
-              </p>
-            </div>
+        {/* Brand & Tagline */}
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-teal-400 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
+            <Activity className="w-5 h-5 text-slate-950 font-black" />
           </div>
-
-          {/* Patient Card Pill */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping-slow" />
-            <div className="text-left">
-              <div className="text-xs font-semibold text-slate-200">
-                John Doe <span className="text-slate-400 font-normal">(68y, M)</span>
-              </div>
-              <div className="text-[11px] text-slate-400">
-                Bed 4B • COPD Stage III • SpO₂ Target: {prescription.targetSpo2Min}-{prescription.targetSpo2Max}%
-              </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-black tracking-wider text-white">OXYSYNC</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">2.0</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono tracking-wide bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                SIMULATED DATA
+              </span>
             </div>
+            <p className="text-[11px] text-slate-400 font-medium">Intelligent Oxygen. Continuous Care.</p>
           </div>
         </div>
 
-        {/* Hardware Status & Quick Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-end w-full md:w-auto">
-          {/* ESP32 Telemetry Pill */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs">
-            <Wifi className={`w-3.5 h-3.5 ${device.connected ? 'text-emerald-400' : 'text-rose-400'}`} />
-            <span className="text-slate-300 font-mono text-[11px]">
-              ESP32: {device.esp32Status.toUpperCase()}
-            </span>
-            <span className="text-[10px] text-slate-400">({device.batteryLevel}%)</span>
+        {/* Live Synchronized High-Precision Telemetry Clocks */}
+        <div className="flex items-center flex-wrap gap-2 text-xs">
+          
+          {/* Master 20 Hz Clock */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-300 font-mono">
+            <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10px] text-slate-500">RTC:</span>
+            <span className="text-white font-bold">{masterClockMs || '18:45:00.00'}</span>
           </div>
 
-          {/* Alert History Button */}
-          <button
-            onClick={onOpenAlertHistory}
-            className="relative px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
-            title="View Alarm History"
-          >
-            <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Alerts</span>
-            {unacknowledgedCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white font-bold animate-pulse">
-                {unacknowledgedCount}
-              </span>
-            )}
-          </button>
+          {/* Therapy Elapsed */}
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-300 font-mono">
+            <Radio className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
+            <span className="text-[10px] text-slate-500">THERAPY:</span>
+            <span className="text-cyan-300 font-bold">{therapyElapsedFormatted}</span>
+          </div>
 
-          {/* Sound / Mute / Snooze */}
+          {/* Active Supply Badge */}
+          {getSourceBadge()}
+
+          {/* Depletion Countdown */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-300 font-mono">
+            <span className="text-slate-500 text-[10px]">REMAINING:</span>
+            <span className="text-amber-300 font-bold">{predictions.formattedCountdown}</span>
+          </div>
+
+          {/* Time-Warp Multiplier Pill */}
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-md p-0.5 font-mono text-[10px]">
+            <span className="px-1.5 text-slate-500">WARP:</span>
+            {[1, 5, 20].map((s) => (
+              <button
+                key={s}
+                onClick={() => setSimulationSpeed(s)}
+                className={`px-1.5 py-0.5 rounded transition-all ${
+                  settings.simulationSpeed === s
+                    ? 'bg-cyan-500 text-slate-950 font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {s}x
+              </button>
+            ))}
+          </div>
+
+          {/* Active Alerts Pill */}
+          {activeAlertsCount > 0 && (
+            <span className="px-2 py-1 rounded-md text-xs font-semibold bg-red-500/20 border border-red-500/40 text-red-300 flex items-center gap-1 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
+              {activeAlertsCount} ALERT{activeAlertsCount > 1 ? 'S' : ''}
+            </span>
+          )}
+
+          {/* Audio Mute/Unmute */}
           <button
             onClick={toggleMute}
-            className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors ${
+            title={isMuted ? 'Unmute Audio Alarms' : 'Mute Audio Alarms'}
+            className={`p-1.5 rounded-md border text-xs transition-colors ${
               isMuted 
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20' 
-                : snoozeRemaining > 0
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
+                ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200' 
+                : 'bg-cyan-950/40 border-cyan-800 text-cyan-300 hover:bg-cyan-900/50'
             }`}
-            title={isMuted ? "Audio muted" : snoozeRemaining > 0 ? `Snoozed (${snoozeRemaining}s)` : "Audio active"}
           >
-            {isMuted ? (
-              <>
-                <VolumeX className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Muted</span>
-              </>
-            ) : snoozeRemaining > 0 ? (
-              <>
-                <Clock className="w-3.5 h-3.5 animate-spin" />
-                <span className="hidden sm:inline">{snoozeRemaining}s</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="hidden sm:inline">Audio</span>
-              </>
-            )}
+            {isMuted ? <VolumeX className="w-4 h-4 text-slate-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
           </button>
 
-          {/* Doctor Prescription Gate */}
-          <button
-            onClick={onOpenPrescription}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-cyan-400 flex items-center gap-1.5 transition-colors"
-          >
-            <Lock className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Rx Lock</span>
-          </button>
+          {snoozeRemaining > 0 ? (
+            <span className="px-2 py-1 rounded-md text-xs bg-amber-950/60 border border-amber-600/50 text-amber-300 font-mono">
+              SNOOZED ({snoozeRemaining}s)
+            </span>
+          ) : (
+            <button
+              onClick={snoozeAlarms}
+              title="Snooze Alarms for 120s"
+              className="px-2 py-1 rounded-md text-xs font-medium bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1"
+            >
+              <BellOff className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Snooze</span>
+            </button>
+          )}
 
-          {/* Export Report */}
+          {/* Reset Demo Button */}
           <button
-            onClick={onOpenReportExport}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
-            title="Export Clinical Telemetry Report"
+            onClick={resetSimulation}
+            title="Reset Simulation State to Nominal Defaults"
+            className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700/80 flex items-center gap-1 transition-all"
           >
-            <FileText className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">Report</span>
-          </button>
-
-          {/* Bedside Mode Toggle */}
-          <button
-            onClick={onToggleBedsideMode}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-cyan-400 flex items-center gap-1.5 transition-colors"
-            title="Bedside High-Contrast Mode"
-          >
-            <Moon className="w-3.5 h-3.5 text-amber-300" />
-            <span className="hidden sm:inline">Bedside</span>
-          </button>
-
-          {/* Emergency 5L High-Flow Boost */}
-          <button
-            onClick={emergencyBoost}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-bold shadow-md shadow-rose-900/40 flex items-center gap-1.5 transition-transform active:scale-95"
-          >
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>BOOST 5L</span>
+            <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Reset Demo</span>
           </button>
         </div>
+      </div>
 
+      {/* Main Tab Navigation Bar */}
+      <div className="max-w-7xl mx-auto px-4 overflow-x-auto scrollbar-none py-1.5 flex items-center gap-1">
+        {navItems.map(item => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectTab(item.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-150 ${
+                isActive
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20 border border-cyan-500/40 text-cyan-300 font-bold shadow-sm shadow-cyan-500/10'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
+              <span>{item.label}</span>
+              {item.badge && (
+                <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                  isActive 
+                    ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/40' 
+                    : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </header>
   );

@@ -1,61 +1,76 @@
 import React from 'react';
+import { AlertTriangle, AlertCircle, Check, BellOff, X } from 'lucide-react';
 import { useTelemetry } from '../context/TelemetryContext';
-import { AlertTriangle, BellOff, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 export const ActiveAlarmBanner: React.FC = () => {
-  const { alerts, snoozeAlarms, snoozeRemaining, acknowledgeAlert } = useTelemetry();
+  const { alerts, acknowledgeAlert, clearAllAlerts, snoozeAlarms, snoozeRemaining } = useTelemetry();
 
-  // Find most severe unacknowledged alert
-  const activeAlert = alerts.find(a => !a.acknowledged);
+  const unacknowledged = alerts.filter(a => !a.acknowledged);
+  if (unacknowledged.length === 0) return null;
 
-  if (!activeAlert) return null;
-
-  const isCritical = activeAlert.severity === 'critical';
+  const topAlert = unacknowledged[0];
+  const isCritical = topAlert.severity === 'critical';
 
   return (
-    <div className={`w-full py-2.5 px-4 transition-all duration-300 border-b ${
-      isCritical 
-        ? 'bg-rose-950/90 border-rose-600 text-rose-100 animate-pulse' 
-        : 'bg-amber-950/80 border-amber-600 text-amber-100'
+    <div className={`w-full border-b transition-all duration-300 py-2.5 px-4 z-30 shadow-lg ${
+      isCritical
+        ? 'bg-red-950/90 border-red-500/80 text-red-100 shadow-red-950/50'
+        : 'bg-amber-950/85 border-amber-500/80 text-amber-100 shadow-amber-950/50'
     }`}>
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3 text-left w-full sm:w-auto">
-          {isCritical ? (
-            <ShieldAlert className="w-6 h-6 text-rose-400 shrink-0 animate-bounce" />
-          ) : (
-            <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0" />
-          )}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+            isCritical ? 'bg-red-600 text-white animate-pulse' : 'bg-amber-600 text-slate-950'
+          }`}>
+            {isCritical ? <AlertCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+          </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
-                isCritical ? 'bg-rose-500 text-white' : 'bg-amber-500 text-slate-950'
+              <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded ${
+                isCritical ? 'bg-red-500 text-white' : 'bg-amber-400 text-slate-950'
               }`}>
-                {activeAlert.severity} PRIORITY
+                {topAlert.severity} [SIMULATED]
               </span>
-              <span className="font-bold text-sm tracking-tight">{activeAlert.title}</span>
+              <span className="font-bold text-sm tracking-wide text-white">{topAlert.title}</span>
+              <span className="text-xs opacity-75 font-mono">({topAlert.timestamp})</span>
             </div>
-            <p className="text-xs opacity-90 mt-0.5">{activeAlert.message}</p>
+            <p className="text-xs opacity-90 text-slate-200 mt-0.5">{topAlert.message}</p>
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 text-xs shrink-0 w-full md:w-auto justify-end">
+          {snoozeRemaining > 0 ? (
+            <span className="px-2 py-1 rounded bg-black/40 border border-white/20 font-mono text-[11px]">
+              Snoozed {snoozeRemaining}s
+            </span>
+          ) : (
+            <button
+              onClick={snoozeAlarms}
+              className="px-2.5 py-1 rounded bg-black/40 hover:bg-black/60 border border-white/20 flex items-center gap-1 transition-colors"
+            >
+              <BellOff className="w-3.5 h-3.5" />
+              <span>Snooze (2m)</span>
+            </button>
+          )}
+
           <button
-            onClick={snoozeAlarms}
-            disabled={snoozeRemaining > 0}
-            className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-black/60 border border-white/20 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            onClick={() => acknowledgeAlert(topAlert.id)}
+            className="px-3 py-1 rounded font-semibold bg-white text-slate-950 hover:bg-slate-200 flex items-center gap-1 transition-colors"
           >
-            <BellOff className="w-3.5 h-3.5" />
-            <span>{snoozeRemaining > 0 ? `Snoozed (${snoozeRemaining}s)` : 'Snooze 2m'}</span>
-          </button>
-          
-          <button
-            onClick={() => acknowledgeAlert(activeAlert.id)}
-            className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
+            <Check className="w-3.5 h-3.5" />
             <span>Acknowledge</span>
           </button>
+
+          {unacknowledged.length > 1 && (
+            <button
+              onClick={clearAllAlerts}
+              title="Acknowledge and Clear All Active Alerts"
+              className="px-2.5 py-1 rounded bg-black/40 hover:bg-black/60 border border-white/20 flex items-center gap-1 transition-colors text-slate-300 hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Clear All ({unacknowledged.length})</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

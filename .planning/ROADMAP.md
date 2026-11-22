@@ -1,56 +1,30 @@
-# OxySync Development Roadmap
+# OXYSYNC 2.0 Roadmap
 
-## Phase Overview
+## Milestone: v2.0.0 — Intelligent Oxygen Management Platform
 
-```mermaid
-flowchart LR
-    P1["Phase 1: Foundation & Core Layout"] --> P2["Phase 2: Vitals & Supply Telemetry"]
-    P2 --> P3["Phase 3: Closed-Loop Auto Titration"]
-    P3 --> P4["Phase 4: Alarms & Safety Audio Engine"]
-    P4 --> P5["Phase 5: ESP32 Simulator & Hardware Link"]
-    P5 --> P6["Phase 6: Polish, Bedside Mode & Export"]
-```
+### Phase 1: Core Physics & Multi-Source Simulation Engine
+- [ ] Define comprehensive TypeScript interfaces for Dual Cylinders (Primary, Secondary), 5-Minute Reserve Buffer, Switching Engine, Predictions, Alerts, and Events.
+- [ ] Build physics calculation helpers ($T = (P \times V)/Q$, depletion curves, timestamp projections).
+- [ ] Implement simulation state provider with auto-switching logic, reserve buffer engagement, and LocalStorage persistence.
 
----
+### Phase 2: Live Operational Dashboard & Animated Supply Path
+- [ ] Refactor patient vitals card with prominent SIMULATED badges and 60fps PPG canvas.
+- [ ] Create Dual-Cylinder & Reserve Buffer status panels.
+- [ ] Build interactive SVG animated mechatronic manifold illustrating active flow path, valve actuations, and gas delivery.
 
-### Phase 1: Application Scaffolding & Core Architecture
-- **Goal**: Scaffold modern Vite + React + TypeScript + Tailwind CSS application with responsive clinical UI layout, navigation, and state models.
-- **Success Criteria**:
-  - Clean project structure, dependencies installed, zero build errors.
-  - Header with system connectivity status, patient profile, and emergency quick-action bar.
-  - Tab/View switcher: Bedside Dashboard, Titration Protocol, Alert Log, Hardware Simulation.
+### Phase 3: Emergency Simulation Lab (Live Demonstration Page)
+- [ ] Build dedicated "Live Demonstration" page with 8 deterministic one-click scenarios.
+- [ ] Implement structured narrative cards (What Happened, Why, System Response).
+- [ ] Add animated step-by-step event pipeline and Reset Simulation control.
 
-### Phase 2: Real-Time Patient Vitals & Oxygen Supply Telemetry
-- **Goal**: Build high-precision vitals cards ($SpO_2$, Pulse Rate), live animated PPG waveform canvas, and oxygen supply telemetry (Cylinder PSI/Bar, Flow L/min, Remaining Volume, and dynamic Runtime estimation).
-- **Success Criteria**:
-  - 60 FPS animated SVG/Canvas PPG plethysmograph waveform.
-  - Dynamic mathematical runtime model calculating exact hours & minutes of oxygen remaining.
-  - Oxygen tank visualization with radial gauge and level percentage.
+### Phase 4: Predictive Analytics, Caregiver View & Audio Alarms
+- [ ] Build Predictive Analytics view with Recharts depletion forecasts, consumption trends, and mathematical formula transparency.
+- [ ] Build Caregiver Dashboard with friendly patient status, plain-English advisories, and browser demo notifications.
+- [ ] Implement IEC 60601-1-8 compliant Web Audio alarms with mute and snooze.
 
-### Phase 3: Doctor-Prescribed Closed-Loop Titration Engine
-- **Goal**: Implement the Doctor Prescription Lock interface and safe automated oxygen flow regulation within physician-set bounds.
-- **Success Criteria**:
-  - Doctor prescription modal with passcode verification, min/max flow bounds, and target $SpO_2$ thresholds.
-  - Automatic titration algorithm adjusting flow rate ($L/\text{min}$) smoothly when $SpO_2$ drifts below or above target.
-  - Instant manual override toggle and emergency high-flow boost button.
-
-### Phase 4: Clinical Alert System & Web Audio Alarm Engine
-- **Goal**: Provide audio-visual alarm management with priority categorization (Critical, Warning, Advisory), snooze countdown, and timestamped event logging.
-- **Success Criteria**:
-  - Web Audio API alarm sound synthesizer (distinct tones for warning vs critical emergency).
-  - Prominent visual flashing banners for urgent hypoxemia or supply failure.
-  - 120-second alarm snooze with active timer display and audit trail in event history.
-
-### Phase 5: Interactive Mechatronics & Hardware Simulation Hub
-- **Goal**: Build an embedded mechatronics test bench allowing users to simulate real patient scenarios and hardware conditions, plus Web Bluetooth/WebSocket interface for real ESP32 boards.
-- **Success Criteria**:
-  - One-click clinical scenario triggers: Normal Resting, Severe Hypoxemia, Rapid Tank Depletion, Cannula Disconnect, Exercise Desaturation.
-  - Fine-grained parameter sliders to perturb sensor readings in real time.
-  - Mock ESP32 serial data packet inspector demonstrating mechatronic telemetry protocol.
-
-### Phase 6: Bedside High-Contrast Mode, Telemetry Export & Production Build
-- **Goal**: Finalize production polish, bedside night mode (low-light OLED friendly), data export (JSON/CSV report), responsive mobile layouts, and bundle verification.
-- **Success Criteria**:
-  - Dark OLED high-contrast bedside mode for nighttime patient rooms.
-  - Telemetry export feature generating clinical summary report.
-  - Flawless build with 0 TypeScript errors and optimized bundle.
+### Phase 5: Analytics, Reports, Exhibition Presentation Mode & Innovation Spec
+- [ ] Build Analytics & Reports view with consumption charts, switching logs, alert frequency, and CSV exporter.
+- [ ] Build College Exhibition Presentation Mode with interactive end-to-end architecture diagram.
+- [ ] Build About & Innovation page detailing mechatronic hardware roadmap vs software simulation.
+- [ ] Build comprehensive Settings page for simulation speeds and physical parameters.
+- [ ] Quality assurance: verification of all scenarios, responsive layouts, 0 console errors, 0 TS errors, and verified production build.

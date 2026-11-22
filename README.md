@@ -1,106 +1,109 @@
-# OxySync — Smart Oxygen Supply & Patient Monitoring System
+# OXYSYNC 2.0 — Intelligent Oxygen Management Platform
 
 [![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?logo=vite)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![Recharts](https://img.shields.io/badge/Recharts-3.11-22c55e)](https://recharts.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> *"Making oxygen supply status visible, understandable, and actionable before it becomes an emergency."*
+> **Tagline**: *Intelligent Oxygen. Continuous Care.*
 
-OxySync is an intelligent healthcare mechatronics and patient telemetry platform. It bridges the critical monitoring gap between oxygen supply sources (pressurized cylinders or continuous molecular-sieve concentrators) and patient physiological status ($SpO_2$, pulse rate, respiration rate, and plethysmograph waveform).
-
----
-
-## 🌟 Key Features
-
-### 1. Real-Time Patient Vitals Telemetry
-- **Continuous $SpO_2$ Tracking**: Precision blood oxygen monitoring with color-coded alerts (Normal $\ge 95\%$, Target Band $92-96\%$, Caution $< 90\%$, Critical Hypoxemia $< 85\%$).
-- **Pulse Rate (BPM)**: Real-time heart rate with dynamic beat animation synchronized to the patient's pulse rhythm, plus tachycardia ($> 120$ BPM) and bradycardia alerts.
-- **60 FPS PPG Waveform Canvas**: High-frequency synthetic Photoplethysmograph with dicrotic notch rendering.
-- **Perfusion Index & Respiration**: Quantitative signal strength ($PI\%$) and respiratory rate tracking ($Br/\text{min}$).
-- **Cannula / Probe Disconnection Alarm**: Immediate detection of dislodged nasal prongs or detached pulse oximeter probe.
-
-### 2. Oxygen Supply & Depletion Physics
-- **Dual Source Support**:
-  - **Pressurized Cylinder**: High-pressure cylinder physics model ($0 - 2200$ PSI / $0 - 150$ Bar) with 680L tank capacity ($4.4$L water volume).
-  - **Oxygen Concentrator**: Continuous flow generation from ambient air without pressure depletion.
-- **Dynamic Runtime Estimation**: Calculates remaining hours and minutes dynamically using Boyle's gas law:
-  $$\text{Remaining Minutes} = \frac{\left(\frac{P_{\text{psi}}}{2000}\right) \times 680\text{ Liters}}{\text{Flow Rate }(L/\text{min})}$$
-- **Mechatronic Valve Actuator**: Percentage stepper/servo valve position feedback ($0 - 100\%$).
-
-### 3. Doctor-Prescribed Closed-Loop Titration
-- **Physician Passcode Gate**: Clinicians authenticate (PIN: `1234`) to lock/unlock safe titration bounds:
-  - Minimum Allowed Flow ($0.5 - 5.0\ L/\text{min}$)
-  - Maximum Allowed Flow ($1.0 - 10.0\ L/\text{min}$)
-  - Target $SpO_2$ Saturation Window (e.g. $92\% - 96\%$)
-- **Automated Titration**: Smoothly titrates valve delivery up when $SpO_2$ desaturates and down when hyper-oxygenated, strictly bounded within clinician orders.
-- **Manual Override & 1-Click 5L Boost**: Immediate tactile override for patients, caregivers, or emergency situations.
-
-### 4. Safety & Auditory Alarm Subsystem
-- **IEC 60601-1-8 Compliant Audio**: Built-in Web Audio API synthesizer generating standard medical alarm pulse sequences:
-  - High-Priority Critical Alarm (Urgent 3-pulse burst)
-  - Yellow Caution Warning (2-pulse chime)
-  - QRS Heartbeat Sync Tone
-- **2-Minute Snooze & Acknowledgment**: Dedicated 120-second alarm silence timer with audit logging.
-- **Comprehensive Incident Audit**: Timestamped alarm history with CSV export.
-
-### 5. Mechatronics Testbench & ESP32 Link
-- **Clinical Scenario Injector**:
-  - *Normal Resting* ($SpO_2\ 96\%$, 72 BPM, 2.0 L/min)
-  - *Acute Hypoxemia* ($SpO_2\ 84\%$, 108 BPM, valve ramps up)
-  - *Post-Exercise Walk Test* ($SpO_2\ 89\%$, 126 BPM)
-  - *Low Tank Reserve* ($< 200$ PSI, runtime $< 20$ min)
-  - *Cannula Disconnection* (Probe off patient)
-  - *Upper Flow Limit* (SpO2 remains critical despite max valve opening)
-- **Live ESP32 Serial Telemetry Monitor**: Displays formatted UART JSON packets (`seq`, `dev`, `spo2`, `bpm`, `flow`, `psi`, `valve`, `cannula`).
-- **Web Bluetooth / BLE Connector**: Hooks directly into real ESP32 microcontroller boards.
-
-### 6. Clinical Bedside Mode & Reporting
-- **Bedside Night Mode**: Fullscreen, high-contrast, low-light OLED display for overnight care without room glare.
-- **Dossier & Report Generator**: Generates clinical session summaries with 1-click Print to PDF or JSON export.
+**OXYSYNC 2.0** is an intelligent oxygen supply monitoring, predictive depletion estimation, and automated backup management software prototype. It demonstrates how a connected healthcare mechatronics platform can monitor oxygen parameters, estimate remaining oxygen runtimes, predict cylinder depletion, automatically manage primary-to-backup supply failover, activate a conceptual 5-minute reserve buffer during supply transitions, and notify caregivers before emergencies occur.
 
 ---
 
-## 🚀 Quick Start
+> [!IMPORTANT]
+> **SAFETY & SIMULATION NOTICE**:
+> This is a **SOFTWARE-ONLY PROTOTYPE**. There is no connected medical hardware or validated clinical monitoring. All patient readings, oxygen measurements, alerts, valve states, and switching operations are clearly labelled as **SIMULATED**. Never present simulated measurements as real clinical readings.
 
-### Prerequisites
-- Node.js 18+ (tested on v24.19)
-- npm or pnpm
+---
 
-### Installation
+## 🚀 Key Modules & Architecture
+
+### 1. Operations Dashboard
+- **Patient Monitoring Panel**: Simulated SpO₂ (70-100%), pulse rate (40-200 BPM), respiration rate, perfusion index, 60 FPS HTML5 Canvas plethysmograph (PPG) waveform, and persistent simulation badges.
+- **Oxygen Supply Management**: Primary Cylinder (A-1), Secondary Backup Cylinder (B-2), and the conceptual 5-Minute Reserve Buffer with pressure readouts (bar & PSI), runtime remaining, and 1-click refill.
+- **System Overview & Audit**: Real-time operating mode, total combined volume, last switching event, and active alerts stream.
+
+### 2. Smart Supply Manifold & Flow Path
+- **Interactive SVG Mechatronics Schematic**: Real-time visual depiction of the oxygen transit path from cylinders, through solenoid valves (V-1, V-2), high-pressure manifold, pressure regulator (3.5 bar), mass flow controller, and to the patient nasal cannula.
+- **Animated Gas Flow Pulses**: Visualizes active gas flow with glowing pulse keyframes.
+- **Configurable Switching Threshold**: Adjust auto-switch trigger (5% to 25%).
+
+### 3. Emergency Simulation Lab (Live Demonstration)
+Dedicated testbed featuring 8 one-click deterministic clinical & supply scenarios:
+1. **Normal Operation**: Stable vitals (SpO₂ 98%, HR 72), primary cylinder active at 135 bar.
+2. **Primary Cylinder Depletion**: Primary pressure rapidly falls to 18 bar (12%), arming auto-failover.
+3. **Automatic Backup Switching**: Primary crosses 10% threshold; valve transitions smoothly to secondary cylinder.
+4. **Low Simulated SpO₂ Alert**: Patient desaturates to 84% SpO₂, triggering clinical alarm and flow alert.
+5. **Backup Cylinder Depletion**: Secondary backup cylinder drops to critical low level (5%).
+6. **Both Supplies Unavailable**: Primary and secondary cylinders both depleted or disconnected (0 bar).
+7. **Reserve Buffer Activation**: Original OXYSYNC 5-minute reserve buffer engages; emergency countdown begins.
+8. **Supply Restoration & Refill**: Fresh 150-bar cylinder connected; normal flow resumes and reserve recharges.
+- Includes structured breakdown (*What Happened*, *Why It Happened*, *System Response*, *State Snapshot*), step-by-step animated logic sequence, and **RESET SIMULATION** action.
+
+### 4. Predictive Depletion Analytics
+- **Deterministic Boyle\'s Gas Law Physics**:
+  $$V_{\text{gas}} = P_{\text{bar}} \times V_{\text{water}}$$
+  $$T_{\text{remaining}} = \frac{V_{\text{gas}}}{Q_{\text{flow}}}$$
+- **Recharts Forecast Visualization**: Area chart projecting multi-source depletion curves over the next 4 hours.
+- **Transparent Assumptions**: Transparently details gas law assumptions (ideal gas at 20°C, continuous uniform flow, no pneumatic leaks). Clarified as deterministic physics modeling, not black-box heuristic AI.
+
+### 5. Caregiver Interface
+- Reassuring, plain-language patient condition cards (*Patient Breathing Comfortably* / *Caution Advised* / *Urgent Attention*).
+- Total available oxygen runtime in plain English (*"X Hours Y Minutes"*).
+- Plain-English attendant advisories with recommended actions.
+- Browser-based push notification demo (`Notification` API) and medical audio chime tester.
+
+### 6. Analytics, Auditing & Reports
+- Hourly consumption volume chart and alert incident frequency chart.
+- Complete cylinder switching audit trail table.
+- **CSV Export**: Generates and downloads `OXYSYNC_2.0_Demonstration_Report.csv`.
+- **Demonstration Dossier**: Printable clinical demonstration report modal.
+
+### 7. College Exhibition Presentation Mode
+- Tailored presentation interface for exhibition judges.
+- Complete system architecture diagram:
+  $$\text{Patient Monitoring Simulator} \longrightarrow \text{OXYSYNC Control Engine} \longrightarrow \text{Oxygen Supply Prediction} \longrightarrow \text{Primary/Backup Supply Manager} \longrightarrow \text{Reserve Buffer Manager} \longrightarrow \text{Alert and Caregiver Interface}$$
+- Interactive clickable subsystem nodes detailing control signals and specifications.
+- Embedded live demonstration controls.
+
+### 8. Innovation & Technical Dossier
+- Six core innovation pillars of OXYSYNC 2.0.
+- Clear distinction between implemented software prototype and proposed physical mechatronics hardware (ESP32-S3, piezoresistive pressure transducers, Bürkert latching solenoid valves, Sensirion mass flow sensor).
+
+### 9. System Simulation Settings
+- Simulation speed multiplier (0.5x, 1x, 2x, 5x, 10x).
+- Cylinder sizes (4.4L D/E vs 10.0L M-size).
+- Switching threshold slider.
+- Reserve buffer capacity adjustment.
+- Audio volume and alarm preferences.
+- LocalStorage persistence.
+
+---
+
+## 🛠️ Technology Stack
+- **Framework**: React 18 + Vite 6 + TypeScript 5.7
+- **Styling**: Tailwind CSS + Custom Medical Dark Glassmorphism
+- **Charting**: Recharts 3.11 + HTML5 Canvas
+- **Icons**: Lucide React
+- **Audio**: Web Audio API (IEC 60601-1-8 medical alarm tone synthesizer)
+- **Persistence**: Browser LocalStorage
+
+---
+
+## 💻 Getting Started
+
+### Development Server
 ```bash
-# Clone or navigate to the project directory
-cd C:\Users\Shubham\.gemini\antigravity\scratch\oxysync-app
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
-
-The app will start at `http://localhost:3000`.
 
 ### Production Build
 ```bash
 npm run build
 npm run preview
 ```
-
----
-
-## 🔒 Clinician Access
-- **Default Doctor PIN**: `1234`
-- Use the **Rx Lock** button in the top navigation bar to authenticate and calibrate patient titration boundaries.
-
----
-
-## 🛠️ Mechatronic Architecture
-
-```
-[ Medical O2 Flow Sensor ] --+
-[ Pressure Transducer   ] ---+---> [ ESP32 Controller ] <--- BLE/WiFi ---> [ OxySync Web Dashboard ]
-[ SpO2 / Pulse Probe    ] --+          |
-                                       +---> [ O2-Rated Valve Actuator ]
-```
+The optimized production build will be emitted to `dist/`.

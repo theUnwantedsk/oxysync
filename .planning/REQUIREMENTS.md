@@ -1,46 +1,88 @@
-# OxySync Functional & Technical Requirements
+# OXYSYNC 2.0 Requirements Specification
 
-## Functional Requirements
+## 1. Functional Requirements (FR)
 
-### 1. Patient Vitals Subsystem
-- **REQ-VITALS-01**: Continuously track and display $SpO_2$ percentage with clinical color coding (Normal $\ge 95\%$, Caution $90-94\%$, Critical Hypoxemia $< 90\%$, Severe $< 85\%$).
-- **REQ-VITALS-02**: Continuously track Pulse Rate (BPM) with tachycardia ($> 100$ BPM) and bradycardia ($< 50$ BPM) notifications.
-- **REQ-VITALS-03**: Display animated real-time Photoplethysmogram (PPG) waveform / pulse rhythm graph.
-- **REQ-VITALS-04**: Maintain 24-hour vitals telemetry buffer with trend graphs ($SpO_2$ vs Time, Pulse vs Time).
+### FR-01: Simulated Patient Monitoring
+- Real-time simulation of SpO2 (70-100%), pulse rate (40-180 BPM), respiratory rate, and perfusion index.
+- 60 FPS animated plethysmographic (PPG) waveform rendered on HTML5 Canvas.
+- Ubiquitous, high-visibility "SIMULATED DATA" badges across all patient displays.
 
-### 2. Oxygen Supply & Runtime Telemetry
-- **REQ-SUPPLY-01**: Display real-time Oxygen Flow Rate in Liters Per Minute ($0.0 - 10.0\ L/\text{min}$, step $0.1$).
-- **REQ-SUPPLY-02**: Measure Cylinder/Concentrator Pressure (PSI & Bar) with visual fill level gauges.
-- **REQ-SUPPLY-03**: Compute dynamic Remaining Runtime ($hours:minutes$) based on current pressure, tank cylinder water volume ($V$), tank pressure factor, and instantaneous flow consumption rate ($t = \frac{P \times V \times F_c}{\text{Flow Rate}}$).
-- **REQ-SUPPLY-04**: Support switching between Concentrator mode (continuous generation) and Cylinder mode (finite pressure tank).
+### FR-02: Dual-Cylinder Management & Physics
+- Primary Cylinder & Secondary (Backup) Cylinder tracking:
+  - Pressure in Bar & PSI
+  - Remaining gas volume in Liters ($V = P_{bar} \times V_{water}$)
+  - Percentage capacity (0-100%)
+  - Estimated remaining duration ($T = V_{gas} / Q_{flow}$)
+  - Connection status: Connected, Active, Standby, Empty, Disconnected, Refilling.
+- Configurable auto-switch threshold (default: 10% / 20 bar).
+- Automatic primary-to-secondary failover when primary reaches threshold.
+- Manual switching toggle with safety interlock.
+- One-click cylinder refill simulation.
 
-### 3. Doctor-Prescribed Flow Titration & Control
-- **REQ-TITR-01**: Provide a secure "Doctor Prescription Gate" where authorized clinicians set Min Flow Rate, Max Flow Rate, and Target $SpO_2$ Range ($e.g., 92\% - 96\%$).
-- **REQ-TITR-02**: Automated Titration Engine: In Auto mode, adjust flow valve incrementally towards target $SpO_2$ while strictly bounding output within the prescribed Min-Max window.
-- **REQ-TITR-03**: Instant Manual Override: Patients or caregivers can toggle to manual flow control or click "Emergency High-Flow Boost" at any moment.
-- **REQ-TITR-04**: Valve status indicator with stepper/solenoid actuation feedback and fail-safe return to default baseline if telemetry drops.
+### FR-03: Five-Minute Reserve Buffer (Original OXYSYNC Concept)
+- Dedicated reserve oxygen buffer conceptually designed for temporary continuity during supply swap.
+- Configurable capacity (default 12.5 L = 5 minutes at 2.5 L/min).
+- Dynamic countdown visualization showing remaining time and percentage.
+- Automatic activation if both primary and secondary supplies are depleted or disconnected.
+- Automatic simulated refill when replacement supply is restored.
+- Explicit engineering disclaimer regarding clinical validation targets.
 
-### 4. Alert & Alarm Notification Engine
-- **REQ-ALARM-01**: Multi-severity triage:
-  - **Critical (Red)**: Severe Hypoxemia ($SpO_2 < 85\%$), Zero Oxygen Flow / Tank Empty ($< 15$ min left), Cannula Disconnect.
-  - **Warning (Amber)**: Low Oxygen Reserve ($< 30$ min left), Moderate Hypoxemia ($< 90\%$), Flow Out of Range.
-  - **Info (Blue/Green)**: System Stable, Flow Target Reached, Auto-Titration Active.
-- **REQ-ALARM-02**: Synthesize audible clinical alarm beeps using the Web Audio API with silence/snooze button (120s timer).
-- **REQ-ALARM-03**: Interactive Alarm History Log with timestamps, severity levels, and acknowledgment tracking.
+### FR-04: Animated Visual Supply Path
+- Interactive SVG mechatronic manifold diagram.
+- Real-time visual depiction of active gas flow pulses from Primary, Secondary, or Reserve Buffer through the regulator to the patient cannula.
+- Valve actuation states (Open, Closed, Switching) with clear simulated disclaimer.
 
-### 5. Hardware Simulation & Physical Controller Interface
-- **REQ-IOT-01**: Interactive Mechatronic Simulator embedded in the UI:
-  - Quick scenario triggers: "Normal Resting", "Nocturnal Desaturation", "Rapid Tank Depletion", "Cannula Detached", "Exercise / Walk Test".
-  - Manual sliders to inject custom pressure, $SpO_2$, pulse rate, or flow sensor readings.
-- **REQ-IOT-02**: Live ESP32 connection connector via Web Bluetooth / WebSocket endpoint for physical prototype testing.
+### FR-05: Predictive Analytics Engine
+- Deterministic depletion calculation displaying remaining hours and minutes.
+- Projected exhaustion timestamps based on current flow rate.
+- Interactive Recharts visualization showing supply consumption trends and depletion curves.
+- Mathematical formula transparency card displaying $T = (P \times V) / Q$ and gas law assumptions.
 
-### 6. User Interface & Caregiver Experience
-- **REQ-UI-01**: High-contrast, clean medical UI designed for dark room / bedside use as well as daytime clinical visibility.
-- **REQ-UI-02**: Emergency Quick Actions: 1-click "Doctor Call / Emergency Alert", "Max Oxygen 5L/min Boost", "Alarm Silence".
-- **REQ-UI-03**: Responsive design optimized for desktop monitors, bedside tablets, and mobile smartphones.
-- **REQ-UI-04**: Telemetry export to CSV / PDF summary report for pulmonologist consultation.
+### FR-06: Emergency Simulation Lab (Live Demonstration)
+- Dedicated top-level page with 8 one-click scenarios:
+  1. Normal operation
+  2. Primary cylinder becoming empty
+  3. Automatic backup switching
+  4. Low simulated SpO2 alert
+  5. Backup cylinder becoming empty
+  6. Both supplies unavailable
+  7. Reserve buffer activation
+  8. Supply restoration and reserve refill
+- Each scenario mutates live state with structured rationale:
+  - What happened
+  - Why it happened
+  - System response
+  - Timestamped event log entry
+- Step-by-step animated event progression pipeline.
+- One-click "Reset Simulation" action.
 
-## Non-Functional Requirements
-- **NFR-PERF-01**: Sub-50ms UI update latency on live telemetry streams (60 FPS PPG waveform rendering).
-- **NFR-RELIABILITY-02**: Zero external server dependency for standalone local use (client-side offline-first architecture).
-- **NFR-ACCESSIBILITY-03**: High visual contrast compliance, large legible numeric values for patients and elders, audible cue distinctions.
+### FR-07: Caregiver Dashboard
+- Dedicated simplified interface for family attendants and nurses.
+- High-contrast, reassuring status indicators (Stable / Warning / Emergency).
+- Total available supply duration in plain language.
+- Active warnings with recommended actions.
+- Browser demo notifications (`Notification` API) and Web Audio test alarms.
+
+### FR-08: Analytics, Auditing & Reports
+- Interactive charts: consumption trends, switching history, and alert frequency.
+- Filterable system event log.
+- Exportable CSV report generation.
+- Formatted printable clinical demonstration report.
+
+### FR-09: Presentation Mode for Judges
+- Streamlined exhibition mode hiding navigation chrome.
+- OXYSYNC 2.0 branding, tagline, and project mission.
+- Interactive system architecture diagram:
+  `Patient Monitoring Simulator` → `OXYSYNC Control Engine` → `Oxygen Supply Prediction` → `Primary/Backup Supply Manager` → `Reserve Buffer Manager` → `Alert and Caregiver Interface`.
+- Embedded live switching and reserve demonstration panel.
+
+### FR-10: Configuration & Persistence
+- Adjustable simulation speed (0.5x, 1x, 2x, 5x, 10x).
+- Cylinder sizes, switching thresholds, flow rates, and reserve capacities.
+- LocalStorage persistence for user preferences.
+
+## 2. Non-Functional Requirements (NFR)
+- NFR-01: 100% offline functionality — no external API keys or paid services.
+- NFR-02: Clean, modular React + TypeScript architecture adhering to Clean Code standards.
+- NFR-03: Responsive medical dark-mode design (charcoal/navy with teal/cyan accents).
+- NFR-04: Web performance optimization: 60 FPS waveform animation via `requestAnimationFrame` with zero memory leaks.

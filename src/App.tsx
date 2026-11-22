@@ -1,124 +1,153 @@
 import React, { useState } from 'react';
 import { TelemetryProvider } from './context/TelemetryContext';
-import { Header } from './components/Header';
+import { Header, ActiveNavTab } from './components/Header';
 import { ActiveAlarmBanner } from './components/ActiveAlarmBanner';
-import { VitalsSection } from './components/VitalsSection';
-import { OxygenSupplySection } from './components/OxygenSupplySection';
-import { TitrationControl } from './components/TitrationControl';
-import { SimulationBench } from './components/SimulationBench';
-import { BedsideNightMode } from './components/BedsideNightMode';
-import { PrescriptionModal } from './components/PrescriptionModal';
-import { AlertHistoryModal } from './components/AlertHistoryModal';
-import { ReportExportModal } from './components/ReportExportModal';
-import { LayoutDashboard, Terminal, ShieldCheck, HeartPulse } from 'lucide-react';
 
-const DashboardContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'simulator'>('dashboard');
-  const [showBedside, setShowBedside] = useState<boolean>(false);
-  const [showPrescription, setShowPrescription] = useState<boolean>(false);
-  const [showAlertHistory, setShowAlertHistory] = useState<boolean>(false);
-  const [showReportExport, setShowReportExport] = useState<boolean>(false);
+// Dashboard Components
+import { BedsideMonitorCard } from './components/dashboard/BedsideMonitorCard';
+import { OxygenSupplyPanel } from './components/dashboard/OxygenSupplyPanel';
+import { SystemOverviewPanel } from './components/dashboard/SystemOverviewPanel';
+
+// View Pages
+import { SupplyPathView } from './components/views/SupplyPathView';
+import { TimeScrubberView } from './components/views/TimeScrubberView';
+import { LiveDemonstrationView } from './components/views/LiveDemonstrationView';
+import { HardwareTelemetryView } from './components/views/HardwareTelemetryView';
+import { PredictiveAnalyticsView } from './components/views/PredictiveAnalyticsView';
+import { CaregiverView } from './components/views/CaregiverView';
+import { AnalyticsReportsView } from './components/views/AnalyticsReportsView';
+import { PresentationModeView } from './components/views/PresentationModeView';
+import { AboutInnovationView } from './components/views/AboutInnovationView';
+import { SettingsView } from './components/views/SettingsView';
+
+import { Activity, ShieldCheck } from 'lucide-react';
+
+const MainAppContent: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<ActiveNavTab>('dashboard');
 
   return (
-    <div className="min-h-screen bg-[#050a12] text-slate-100 flex flex-col">
-      {/* Top Clinical Header */}
-      <Header
-        onOpenPrescription={() => setShowPrescription(true)}
-        onOpenAlertHistory={() => setShowAlertHistory(true)}
-        onOpenReportExport={() => setShowReportExport(true)}
-        onToggleBedsideMode={() => setShowBedside(true)}
-      />
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+      
+      {/* Primary Header with Live Telemetry Pills & Navigation */}
+      <Header currentTab={activeTab} onSelectTab={setActiveTab} />
 
-      {/* Dynamic Urgent Alarm Banner */}
+      {/* Dynamic Urgent Alarm Banner (IEC 60601-1-8 alerts) */}
       <ActiveAlarmBanner />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 transition-all duration-300">
         
-        {/* View Switcher Tabs */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
-                activeTab === 'dashboard'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Bedside Clinical Telemetry</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('simulator')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
-                activeTab === 'simulator'
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Terminal className="w-4 h-4" />
-              <span>Mechatronics Testbench & ESP32</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Telemetry Link: ONLINE (1.0 Hz)</span>
-          </div>
-        </div>
-
-        {/* View 1: Clinical Dashboard */}
+        {/* VIEW 1: Operational Clinical Bedside Monitor & Supplies */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* 1. Patient Vitals */}
-            <VitalsSection />
+            {/* A. Multi-Lead Bedside Monitor (Lead II ECG + PPG Pleth + 20Hz Clock) */}
+            <BedsideMonitorCard />
 
-            {/* 2. Oxygen Supply & Physics */}
-            <OxygenSupplySection />
+            {/* B. Oxygen Supply Management (Primary, Secondary, 5-Min Reserve Buffer) */}
+            <OxygenSupplyPanel />
 
-            {/* 3. Closed-Loop Titration Controls */}
-            <TitrationControl onOpenPrescription={() => setShowPrescription(true)} />
+            {/* C. System Overview & Switching Audit */}
+            <SystemOverviewPanel />
           </div>
         )}
 
-        {/* View 2: Mechatronics Testbench */}
-        {activeTab === 'simulator' && (
-          <div className="space-y-6 animate-fadeIn">
-            <SimulationBench />
+        {/* VIEW 2: Smart Supply Manifold & Animated Flow Path */}
+        {activeTab === 'supply_path' && (
+          <div className="animate-fadeIn">
+            <SupplyPathView />
+          </div>
+        )}
+
+        {/* VIEW 3: Precision Chronometer & Depletion Time-Machine */}
+        {activeTab === 'time_travel' && (
+          <div className="animate-fadeIn">
+            <TimeScrubberView />
+          </div>
+        )}
+
+        {/* VIEW 4: Live Demonstration & Emergency Simulation Lab (8 Scenarios) */}
+        {activeTab === 'demonstration' && (
+          <div className="animate-fadeIn">
+            <LiveDemonstrationView />
+          </div>
+        )}
+
+        {/* VIEW 5: ESP32 Mechatronics Hardware & UART Serial Telemetry */}
+        {activeTab === 'hardware' && (
+          <div className="animate-fadeIn">
+            <HardwareTelemetryView />
+          </div>
+        )}
+
+        {/* VIEW 6: Predictive Depletion Analytics */}
+        {activeTab === 'predictive' && (
+          <div className="animate-fadeIn">
+            <PredictiveAnalyticsView />
+          </div>
+        )}
+
+        {/* VIEW 7: Caregiver & Attendant Interface */}
+        {activeTab === 'caregiver' && (
+          <div className="animate-fadeIn">
+            <CaregiverView />
+          </div>
+        )}
+
+        {/* VIEW 8: Analytics, Auditing & Reports */}
+        {activeTab === 'analytics' && (
+          <div className="animate-fadeIn">
+            <AnalyticsReportsView />
+          </div>
+        )}
+
+        {/* VIEW 9: College Exhibition Presentation Mode */}
+        {activeTab === 'presentation' && (
+          <div className="animate-fadeIn">
+            <PresentationModeView />
+          </div>
+        )}
+
+        {/* VIEW 10: About & Innovation Engineering Dossier */}
+        {activeTab === 'innovation' && (
+          <div className="animate-fadeIn">
+            <AboutInnovationView />
+          </div>
+        )}
+
+        {/* VIEW 11: System Settings & Simulation Calibration */}
+        {activeTab === 'settings' && (
+          <div className="animate-fadeIn">
+            <SettingsView />
           </div>
         )}
 
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-[#03060c] py-4 px-6 text-xs text-slate-500">
+      {/* Professional Medical Engineering Footer */}
+      <footer className="border-t border-slate-800/80 bg-[#050810] py-4 px-6 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <HeartPulse className="w-4 h-4 text-cyan-400" />
-            <span>
-              <strong>OxySync Mechatronic System</strong> — Smart Oxygen Supply & Patient Monitoring
+            <div className="w-5 h-5 rounded-md bg-cyan-500/20 flex items-center justify-center">
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <span className="font-bold text-slate-300">OXYSYNC 2.0</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-400">Intelligent Oxygen. Continuous Care.</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+              <span>SOFTWARE PROTOTYPE ONLY · NOT CONNECTED TO MEDICAL HARDWARE</span>
             </span>
           </div>
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span>ESP32 Firmware v2.4</span>
-            <span>•</span>
-            <span>IEC 60601-1-8 Audio Compliance</span>
-            <span>•</span>
-            <span className="text-emerald-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Clinician Protected
-            </span>
+
+          <div className="flex items-center gap-2 text-slate-500">
+            <span>Engineering Exhibition Prototype</span>
           </div>
         </div>
       </footer>
 
-      {/* Modals & Overlays */}
-      {showBedside && <BedsideNightMode onClose={() => setShowBedside(false)} />}
-      <PrescriptionModal isOpen={showPrescription} onClose={() => setShowPrescription(false)} />
-      <AlertHistoryModal isOpen={showAlertHistory} onClose={() => setShowAlertHistory(false)} />
-      <ReportExportModal isOpen={showReportExport} onClose={() => setShowReportExport(false)} />
     </div>
   );
 };
@@ -126,8 +155,9 @@ const DashboardContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <TelemetryProvider>
-      <DashboardContent />
+      <MainAppContent />
     </TelemetryProvider>
   );
 };
+
 export default App;
