@@ -1,0 +1,721 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Top App Bar & Connection Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/bg_card"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="10dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_alignParentStart="true">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OXYSYNC 2.0"
+                        android:textColor="@color/cyan_accent"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CONNECTED O2 MANAGEMENT"
+                        android:textColor="@color/text_muted"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1" />
+                </LinearLayout>
+
+                <!-- Connection Status Pill & IP Button -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_alignParentEnd="true">
+
+                    <TextView
+                        android:id="@+id/tvConnectionStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_pill_amber"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:text="CONNECTING"
+                        android:textColor="@color/status_warning"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/btnConnectionSettings"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_preferences"
+                        app:tint="@color/text_secondary"
+                        android:contentDescription="IP Configuration" />
+                </LinearLayout>
+            </RelativeLayout>
+
+            <!-- Prominent Non-Removable Simulation Disclaimer Banner -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="#15FFFFFF"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:gravity="center"
+                android:text="SOFTWARE SIMULATION PROTOTYPE — NOT CLINICALLY VALIDATED"
+                android:textColor="#94A3B8"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+        </LinearLayout>
+
+        <!-- Navigation Tabs (Dashboard, Lab, Analytics) -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/bg_card"
+            app:tabIndicatorColor="@color/cyan_accent"
+            app:tabSelectedTextColor="@color/cyan_accent"
+            app:tabTextColor="@color/text_secondary"
+            app:tabMode="fixed">
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dashboard" />
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Simulation Lab" />
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Prediction &amp; Audit" />
+        </com.google.android.material.tabs.TabLayout>
+
+        <!-- Main Scrollable Content Area -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- ============================================== -->
+                <!-- SECTION 1: DASHBOARD VIEW CONTAINER -->
+                <!-- ============================================== -->
+                <LinearLayout
+                    android:id="@+id/layoutDashboardView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="visible">
+
+                    <!-- Active Alert Banner (If Any) -->
+                    <LinearLayout
+                        android:id="@+id/cardActiveAlert"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_pill_green"
+                        android:orientation="horizontal"
+                        android:padding="12dp"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="14dp">
+
+                        <ImageView
+                            android:id="@+id/ivAlertIcon"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/ic_dialog_info"
+                            app:tint="@color/status_nominal" />
+
+                        <TextView
+                            android:id="@+id/tvActiveAlertText"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="10dp"
+                            android:text="System Nominal: Primary supply online."
+                            android:textColor="@color/status_nominal"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Patient Vitals Card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_card_dark"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_marginBottom="16dp">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="PATIENT PHYSIOLOGY"
+                                android:textColor="@color/text_muted"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.08" />
+
+                            <TextView
+                                android:id="@+id/tvFlowRateBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:background="@drawable/bg_pill_cyan"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="2dp"
+                                android:text="FLOW: 5.0 L/min"
+                                android:textColor="@color/cyan_accent"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <!-- Vitals Grid: SpO2, Pulse, Respiration, PI -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <!-- SpO2 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="SpO2"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="12sp" />
+                                <TextView
+                                    android:id="@+id/tvVitalsSpO2"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="98%"
+                                    android:textColor="@color/cyan_accent"
+                                    android:textSize="26sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Pulse Rate -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="PULSE"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="12sp" />
+                                <TextView
+                                    android:id="@+id/tvVitalsPulse"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="74 bpm"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="26sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Respiration Rate -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="RESP"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="12sp" />
+                                <TextView
+                                    android:id="@+id/tvVitalsResp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="16 rpm"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="26sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Custom Canvas Plethysmograph Waveform View -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="PLETHYSMOGRAM (PPG WAVEFORM)"
+                            android:textColor="@color/text_muted"
+                            android:textSize="10sp"
+                            android:letterSpacing="0.08" />
+
+                        <com.oxysync.connected.ui.view.PlethysmographWaveView
+                            android:id="@+id/plethWaveView"
+                            android:layout_width="match_parent"
+                            android:layout_height="80dp"
+                            android:background="#0A101C" />
+                    </LinearLayout>
+
+                    <!-- Dual Cylinder Oxygen Supply Card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_card_dark"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="OXYGEN SUPPLY NETWORK"
+                            android:textColor="@color/text_muted"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="12dp" />
+
+                        <!-- Primary Cylinder -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="80dp"
+                                android:layout_height="wrap_content"
+                                android:text="PRIMARY"
+                                android:textColor="@color/text_primary"
+                                android:textStyle="bold"
+                                android:textSize="13sp" />
+
+                            <ProgressBar
+                                android:id="@+id/pbPrimarySupply"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="0dp"
+                                android:layout_height="12dp"
+                                android:layout_weight="1"
+                                android:progress="100"
+                                android:max="100"
+                                android:progressTint="@color/cyan_accent"
+                                android:progressBackgroundTint="#20FFFFFF" />
+
+                            <TextView
+                                android:id="@+id/tvPrimaryPercent"
+                                android:layout_width="55dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="100%"
+                                android:textColor="@color/cyan_accent"
+                                android:textStyle="bold"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvPrimaryBar"
+                                android:layout_width="60dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="150 Bar"
+                                android:textColor="@color/text_muted"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <!-- Backup Cylinder -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="12dp">
+
+                            <TextView
+                                android:layout_width="80dp"
+                                android:layout_height="wrap_content"
+                                android:text="BACKUP"
+                                android:textColor="@color/text_primary"
+                                android:textStyle="bold"
+                                android:textSize="13sp" />
+
+                            <ProgressBar
+                                android:id="@+id/pbBackupSupply"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="0dp"
+                                android:layout_height="12dp"
+                                android:layout_weight="1"
+                                android:progress="100"
+                                android:max="100"
+                                android:progressTint="@color/teal_accent"
+                                android:progressBackgroundTint="#20FFFFFF" />
+
+                            <TextView
+                                android:id="@+id/tvBackupPercent"
+                                android:layout_width="55dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="100%"
+                                android:textColor="@color/teal_accent"
+                                android:textStyle="bold"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvBackupBar"
+                                android:layout_width="60dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="150 Bar"
+                                android:textColor="@color/text_muted"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <!-- Active Source Indicator -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="#15FFFFFF"
+                            android:padding="8dp"
+                            android:layout_marginBottom="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="ACTIVE FLOW LINE:"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvActiveSourceBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:text="PRIMARY CYLINDER"
+                                android:textColor="@color/status_nominal"
+                                android:textStyle="bold"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <!-- Manual Switch Solenoid Controls -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btnSwitchPrimary"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="6dp"
+                                android:text="Select Primary"
+                                android:textColor="@color/cyan_accent"
+                                app:strokeColor="@color/cyan_accent" />
+
+                            <Button
+                                android:id="@+id/btnSwitchBackup"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="6dp"
+                                android:text="Select Backup"
+                                android:textColor="@color/teal_accent"
+                                app:strokeColor="@color/teal_accent" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 5-Minute Reserve Buffer Card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_card_dark"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_marginBottom="16dp">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CONCEPTUAL 5-MINUTE RESERVE BUFFER"
+                                android:textColor="@color/text_muted"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.08" />
+
+                            <TextView
+                                android:id="@+id/tvReserveBufferState"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="STANDBY (100%)"
+                                android:textColor="@color/status_nominal"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <ProgressBar
+                            android:id="@+id/pbReserveBuffer"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="12dp"
+                            android:progress="100"
+                            android:max="100"
+                            android:progressTint="@color/status_warning"
+                            android:progressBackgroundTint="#20FFFFFF"
+                            android:layout_marginBottom="6dp" />
+
+                        <TextView
+                            android:id="@+id/tvReserveCountdown"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Buffer Available: 300.0s (Safety bridge for supply changeover)"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ============================================== -->
+                <!-- SECTION 2: SIMULATION LAB VIEW CONTAINER -->
+                <!-- ============================================== -->
+                <LinearLayout
+                    android:id="@+id/layoutLabView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EMERGENCY SIMULATION LAB"
+                        android:textColor="@color/cyan_accent"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Trigger real-time exhibition failover and emergency events on the ESP32 controller."
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Scenario Action Cards (8 Scenarios) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <Button
+                            android:id="@+id/btnScenario1"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="1. Normal Operation (Reset Supply)"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="2. Primary Cylinder Low (&lt;20%)"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario3"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="3. Automatic Backup Switching (&lt;15%)"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario4"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="4. Low SpO2 Hypoxemia Alert (&lt;88%)"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario5"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="5. Backup Cylinder Depleting (&lt;15%)"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario6"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="6. Dual Supply Failure (Both 0%)"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario7"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="7. 5-Min Reserve Buffer Countdown"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/btnScenario8"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="8. Supply Restored &amp; Reserve Refill"
+                            android:layout_marginBottom="12dp" />
+                    </LinearLayout>
+
+                    <!-- Quick Refill All Button -->
+                    <Button
+                        android:id="@+id/btnRefillAll"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Refill All Cylinders to 150 Bar"
+                        android:textColor="@color/status_nominal"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_marginBottom="16dp" />
+                </LinearLayout>
+
+                <!-- ============================================== -->
+                <!-- SECTION 3: PREDICTION & AUDIT VIEW CONTAINER -->
+                <!-- ============================================== -->
+                <LinearLayout
+                    android:id="@+id/layoutAnalyticsView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <!-- Boyle's Law Math Card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_card_dark"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="DEPLETION PREDICTION FORMULA"
+                            android:textColor="@color/text_muted"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="6dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="V_usable = P (Bar) × V_water (10.0 L)&#10;T_remaining = V_usable / Flow_Rate (L/min)"
+                            android:textColor="@color/cyan_accent"
+                            android:textStyle="bold"
+                            android:textSize="13sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvAnalyticsEstimatedRuntime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Estimated Remaining Runtime: 300.0 minutes"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Export Demonstration Audit Report (CSV) -->
+                    <Button
+                        android:id="@+id/btnExportCsv"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Export Demonstration Report (CSV)"
+                        android:textColor="@color/cyan_accent"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:strokeColor="@color/cyan_accent"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Recent Events Log -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EVENT AUDIT TRAIL"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tvEventLogOutput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="#0A101C"
+                        android:padding="12dp"
+                        android:fontFamily="monospace"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:text="Connecting to ESP32 controller..." />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

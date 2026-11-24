@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Oxygen Supply & Patient Monitoring System — Master Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #050a12;
+      --card-bg: rgba(11, 20, 36, 0.78);
+      --card-border: rgba(0, 229, 255, 0.22);
+      --primary: #00e5ff;
+      --primary-dim: rgba(0, 229, 255, 0.12);
+      --accent: #10b981;
+      --accent-dim: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --gradient-primary: linear-gradient(135deg, #00e5ff 0%, #3b82f6 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 12% 18%, rgba(0, 229, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 88% 82%, rgba(16, 185, 129, 0.06) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(11, 19, 34, 0.85) 0%, #050a12 100%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .grid-lines {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 36px 36px;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 34px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(5, 10, 18, 0.92);
+      backdrop-filter: blur(14px);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.2rem;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(0, 229, 255, 0.4);
+      color: #050a12;
+      font-weight: 900;
+      font-size: 1rem;
+    }
+
+    .tagline {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+      padding-left: 12px;
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--primary);
+      background: var(--primary-dim);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      padding: 7px 15px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-canva {
+      background: #7d2ae8;
+      border: none;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(125, 42, 232, 0.4);
+    }
+
+    .btn-canva:hover {
+      background: #9346f8;
+      color: #fff;
+    }
+
+    .viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 34px;
+      position: relative;
+    }
+
+    .slide-deck {
+      position: relative;
+      width: 100%;
+      max-width: 1260px;
+      height: 100%;
+      max-height: 720px;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.98) translateY(12px);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 34px 44px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) translateY(0);
+      z-index: 2;
+    }
+
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .slide-num {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: var(--primary-dim);
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+
+    .slide-category {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .slide-title {
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.6px;
+      margin-bottom: 4px;
+    }
+
+    .slide-title span {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-subtitle {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      margin-bottom: 18px;
+      max-width: 860px;
+      line-height: 1.45;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; flex: 1; align-content: center; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; align-content: center; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; flex: 1; align-content: center; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; flex: 1; align-content: center; }
+
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 18px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card:hover {
+      border-color: var(--primary);
+      background: rgba(0, 229, 255, 0.03);
+    }
+
+    .card-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .card h4 {
+      font-size: 1.05rem;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Empty state team profile cards */
+    .empty-card {
+      border: 2px dashed rgba(0, 229, 255, 0.35);
+      background: rgba(0, 229, 255, 0.02);
+      border-radius: 14px;
+      padding: 20px 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .empty-role {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-dim);
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-bottom: 6px;
+    }
+
+    .empty-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .empty-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    /* Comparison Table */
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .table-custom th, .table-custom td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .table-custom th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .table-custom tr.highlight td {
+      color: #fff;
+      font-weight: 600;
+      background: rgba(0, 229, 255, 0.08);
+      border-color: rgba(0, 229, 255, 0.3);
+    }
+
+    .tag-check { color: var(--accent); font-weight: bold; }
+    .tag-cross { color: var(--danger); opacity: 0.7; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 34px;
+      background: rgba(5, 10, 18, 0.96);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      z-index: 10;
+    }
+
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 9.09%;
+      background: var(--gradient-primary);
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="grid-lines"></div>
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">O₂</div>
+      <div>SMART OXYGEN SUPPLY SYSTEM</div>
+      <div class="tagline">Project Master Document · 11 Approved Slides</div>
+    </div>
+    <div class="header-actions">
+      <span class="badge-counter" id="slideCounter">Slide 1 / 11</span>
+      <a class="btn btn-canva" href="https://www.canva.com/projects" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open Canva Projects
+      </a>
+      <button class="btn" onclick="toggleFullScreen()">Fullscreen</button>
+    </div>
+  </header>
+
+  <main class="viewport">
+    <div class="slide-deck">
+
+      <!-- SLIDE 1 -->
+      <div class="slide active" id="slide-1">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 01</span>
+          <span class="slide-category">Title & Introduction</span>
+        </div>
+        <div>
+          <h2 class="slide-title">SMART OXYGEN SUPPLY & <span>PATIENT MONITORING SYSTEM</span></h2>
+          <div class="slide-subtitle">An intelligent healthcare mechatronics system managing oxygen delivery, monitoring patient parameters, and providing real-time alerts.</div>
+        </div>
+        <div class="grid-5" style="margin-top: 10px;">
+          <div class="empty-card">
+            <div class="empty-avatar">👤</div>
+            <div class="empty-role">PROJECT LEAD</div>
+            <div class="empty-name">[ Student / Lead ]</div>
+            <div class="empty-desc">System Design & Integration</div>
+          </div>
+          <div class="empty-card">
+            <div class="empty-avatar">👤</div>
+            <div class="empty-role">EMBEDDED & IOT</div>
+            <div class="empty-name">[ Firmware Lead ]</div>
+            <div class="empty-desc">ESP32 & Sensor Interfacing</div>
+          </div>
+          <div class="empty-card">
+            <div class="empty-avatar">👤</div>
+            <div class="empty-role">FLOW CONTROL</div>
+            <div class="empty-name">[ Mechatronics Lead ]</div>
+            <div class="empty-desc">Actuation & Valve Regulation</div>
+          </div>
+          <div class="empty-card">
+            <div class="empty-avatar">👤</div>
+            <div class="empty-role">SOFTWARE & APP</div>
+            <div class="empty-name">[ App Developer ]</div>
+            <div class="empty-desc">Telemetry & Alerts Dashboard</div>
+          </div>
+          <div class="empty-card">
+            <div class="empty-avatar">👤</div>
+            <div class="empty-role">PROJECT ADVISOR</div>
+            <div class="empty-name">[ Faculty / Mentor ]</div>
+            <div class="empty-desc">Clinical & Academic Guidance</div>
+          </div>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); display:flex; gap: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; margin-top: 10px;">
+          <span>Category: <strong>Healthcare Technology / Mechatronics</strong></span>
+          <span>Stage: <strong>Concept Development & Prototype Planning</strong></span>
+          <span>Approach: <strong>Integrated Smart System</strong></span>
+        </div>
+      </div>
+
+      <!-- SLIDE 2 -->
+      <div class="slide" id="slide-2">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 02</span>
+          <span class="slide-category">Clinical Friction</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Problem <span>Statement</span></h2>
+          <div class="slide-subtitle">Patients requiring continuous or assisted oxygen support depend on cylinders and concentrators with critical monitoring gaps.</div>
+        </div>
+        <div class="grid-4">
+          <div class="card">
+            <div class="card-label">FRICTION 01</div>
+            <h4>Limited Real-Time Visibility</h4>
+            <p>Oxygen supply conditions lack automated tracking, relying on periodic visual inspections by busy hospital or home caregivers.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">FRICTION 02</div>
+            <h4>Unknown Remaining Runtime</h4>
+            <p>Difficulty estimating remaining oxygen quantity and exact runtime at fluctuating patient flow rates.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">FRICTION 03</div>
+            <h4>Unexpected Depletion Risks</h4>
+            <p>High risk of sudden, undetected oxygen interruption during night shifts, transport, or peak ward consumption.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">FRICTION 04</div>
+            <h4>Caregiver Workload Burden</h4>
+            <p>Continuous manual monitoring and manual flow adjustments cause severe physical and mental fatigue for family and staff.</p>
+          </div>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(0,229,255,0.06); border-radius: 10px; border: 1px solid rgba(0,229,255,0.2); font-size: 0.88rem;">
+          <strong style="color:var(--primary);">Core Need:</strong> An integrated system that improves oxygen supply visibility, patient monitoring, and caregiver awareness simultaneously.
+        </div>
+      </div>
+
+      <!-- SLIDE 3 -->
+      <div class="slide" id="slide-3">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 03</span>
+          <span class="slide-category">State of the Art</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Existing Systems <span>& Limitations</span></h2>
+          <div class="slide-subtitle">Why current standalone equipment fails to prevent avoidable clinical emergencies.</div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-label">STANDALONE CYLINDERS</div>
+            <h4>Mechanical Flow Regulators</h4>
+            <p>Purely analog gauges. No electronic data, no audible low-supply alarms, and zero warning before total pressure collapse.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">CONVENTIONAL CONCENTRATORS</div>
+            <h4>Fixed-Rate Output</h4>
+            <p>Deliver fixed flow independent of patient SpO₂ condition. No integration with patient vitals; basic audio alarms trigger only on complete failure.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">DISCONNECTED PULSE OXIMETERS</div>
+            <h4>Isolated Monitoring</h4>
+            <p>Pulse oximeters sound localized beeps but have no communication with the oxygen delivery device to adjust flow or alert remote staff.</p>
+          </div>
+        </div>
+        <div class="card" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.04);">
+          <strong style="color:#f87171;">The Systemic Gap:</strong> No current low-cost device integrates oxygen supply telemetry, patient vitals monitoring, and automatic flow adaptation into one unit.
+        </div>
+      </div>
+
+      <!-- SLIDE 4 -->
+      <div class="slide" id="slide-4">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 04</span>
+          <span class="slide-category">Core Value Proposition</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Proposed Solution <span>& Value Proposition</span></h2>
+          <div class="slide-subtitle">"One intelligent system for oxygen supply management, patient monitoring and caregiver alerts, compatible with existing oxygen sources."</div>
+        </div>
+        <div class="grid-4">
+          <div class="card">
+            <div class="card-label">PILLAR 01</div>
+            <h4>Supply Telemetry</h4>
+            <p>Real-time oxygen flow, pressure, remaining volume, and approximate runtime prediction.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">PILLAR 02</div>
+            <h4>Patient Monitoring</h4>
+            <p>Continuous SpO₂ and pulse-rate monitoring with instant abnormal parameter threshold alerts.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">PILLAR 03</div>
+            <h4>Doctor-Prescribed Auto Flow</h4>
+            <p>Automatic flow regulation within validated, clinician-authorized limits with full manual override.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">PILLAR 04</div>
+            <h4>Smart Connectivity</h4>
+            <p>Live mobile telemetry, low-supply notifications, and equipment fault detection.</p>
+          </div>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); padding: 10px 16px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+          💡 <strong>Compatibility First:</strong> Integrates with existing oxygen concentrators and cylinders rather than requiring expensive new oxygen generation systems.
+        </div>
+      </div>
+
+      <!-- SLIDE 5 -->
+      <div class="slide" id="slide-5">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 05</span>
+          <span class="slide-category">System Engineering</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Working Principle <span>& System Architecture</span></h2>
+          <div class="slide-subtitle">A multi-layered mechatronics pipeline connecting sensors, controller decision logic, and safety actuators.</div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-label">1. SENSING SUBSYSTEM</div>
+            <h4>Continuous Inputs</h4>
+            <p>• Medical Oxygen Flow Sensor<br>• Pressure Transducer<br>• Continuous SpO₂ & Pulse Rate Probe</p>
+          </div>
+          <div class="card">
+            <div class="card-label">2. INTELLIGENT CONTROLLER</div>
+            <h4>ESP32 Logic Engine</h4>
+            <p>• Real-time parameter evaluation against doctor limits<br>• Runtime prediction mathematical model<br>• Fault detection & safe failover routines</p>
+          </div>
+          <div class="card">
+            <div class="card-label">3. OUTPUT & ACTUATION</div>
+            <h4>Safe Clinical Delivery</h4>
+            <p>• Electrically controlled oxygen-compatible valve<br>• High-contrast bedside OLED display<br>• Audible buzzer + WiFi/BLE Mobile App</p>
+          </div>
+        </div>
+        <div class="card" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.03);">
+          <strong style="color:var(--accent);">Safety Principle Enforced:</strong> Automatic adjustment operates strictly within clinician limits. Any sensor failure or equipment fault triggers immediate manual failover.
+        </div>
+      </div>
+
+      <!-- SLIDE 6 -->
+      <div class="slide" id="slide-6">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 06</span>
+          <span class="slide-category">Execution Roadmap</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Prototype Design <span>& Development Direction</span></h2>
+          <div class="slide-subtitle">Staged development prioritizing affordability, practical engineering, and oxygen compatibility.</div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-label">INITIAL SCOPE DECISION</div>
+            <h4>Oxygen Concentrator First</h4>
+            <p>• Initial prototype will focus on oxygen concentrator compatibility for controlled, safe development.<br>• High-pressure cylinder compatibility follows in subsequent development phases.<br>• Strictly using rated oxygen-compatible valves and certified flow sensors.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">6-PHASE DEVELOPMENT STAGES</div>
+            <p style="line-height: 1.6; font-size: 0.85rem;">
+              <strong>Phase 1:</strong> Oxygen flow and pressure monitoring<br>
+              <strong>Phase 2:</strong> SpO₂ and pulse-rate monitoring<br>
+              <strong>Phase 3:</strong> Remaining supply and runtime estimation<br>
+              <strong>Phase 4:</strong> Automatic flow adjustment within prescribed limits<br>
+              <strong>Phase 5:</strong> Mobile app and notification integration<br>
+              <strong>Phase 6:</strong> Safety testing and complete system integration
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 7 -->
+      <div class="slide" id="slide-7">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 07</span>
+          <span class="slide-category">Market Discovery</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Market Opportunity <span>& Target Customers</span></h2>
+          <div class="slide-subtitle">Targeting high-stress home respiratory care first, followed by institutional healthcare expansion.</div>
+        </div>
+        <div class="grid-2">
+          <div class="card" style="border-color: rgba(0, 229, 255, 0.4);">
+            <div class="card-label">PRIMARY TARGET (INITIAL ENTRY)</div>
+            <h4>Home Healthcare & Respiratory Care</h4>
+            <p>• Home oxygen-dependent patients (COPD, pulmonary fibrosis)<br>• Family members and home caregivers<br>• Home healthcare service providers (e.g. equipment rental agencies)</p>
+          </div>
+          <div class="card">
+            <div class="card-label">SECONDARY TARGET (SCALE PHASE)</div>
+            <h4>Clinical & Institutional Networks</h4>
+            <p>• Community health centers and tier-2/3 hospitals<br>• Emergency transport & ambulance services<br>• Medical equipment manufacturers and distributors</p>
+          </div>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); padding: 10px 16px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+          🚀 <strong>Initial Market Entry:</strong> Prioritize home healthcare providers and respiratory specialists for customer discovery and early product feedback.
+        </div>
+      </div>
+
+      <!-- SLIDE 8 -->
+      <div class="slide" id="slide-8">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 08</span>
+          <span class="slide-category">Competitive Analysis</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Competitor Analysis <span>& Differentiation</span></h2>
+          <div class="slide-subtitle">A balanced, verified comparison across existing commercial respiratory categories.</div>
+        </div>
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Comparison Parameter</th>
+              <th>Conventional Concentrators</th>
+              <th>Smart Patient Monitors</th>
+              <th>Digital Flowmeters</th>
+              <th style="color:var(--primary);">Smart Oxygen System (Our Project)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Oxygen Supply Monitoring</td>
+              <td><span class="tag-cross">Basic</span></td>
+              <td><span class="tag-cross">None</span></td>
+              <td><span class="tag-check">Flow Only</span></td>
+              <td class="tag-check">Flow + Pressure + Status</td>
+            </tr>
+            <tr>
+              <td>Runtime Prediction</td>
+              <td><span class="tag-cross">None</span></td>
+              <td><span class="tag-cross">None</span></td>
+              <td><span class="tag-cross">None</span></td>
+              <td class="tag-check">Algorithmic Remaining Time</td>
+            </tr>
+            <tr>
+              <td>Patient SpO₂ Vital Sync</td>
+              <td><span class="tag-cross">None</span></td>
+              <td><span class="tag-check">Yes</span></td>
+              <td><span class="tag-cross">None</span></td>
+              <td class="tag-check">Continuous Sync Display</td>
+            </tr>
+            <tr class="highlight">
+              <td>Doctor-Prescribed Auto Flow</td>
+              <td><span class="tag-cross">Manual Only</span></td>
+              <td><span class="tag-cross">None</span></td>
+              <td><span class="tag-cross">Manual Only</span></td>
+              <td class="tag-check">Doctor-Prescribed Limits</td>
+            </tr>
+            <tr>
+              <td>Caregiver Mobile Alerts</td>
+              <td><span class="tag-cross">Local Buzzer</span></td>
+              <td><span class="tag-check">App Alerts</span></td>
+              <td><span class="tag-cross">None</span></td>
+              <td class="tag-check">Mobile App + Local Buzzer</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SLIDE 9 -->
+      <div class="slide" id="slide-9">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 09</span>
+          <span class="slide-category">Commercial Model</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Business Model <span>& Go-to-Market</span></h2>
+          <div class="slide-subtitle">Investigating hardware sales with optional subscription-based digital services.</div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-label">MODEL 1: HARDWARE</div>
+            <h4>Device Sales</h4>
+            <p>One-time purchase of the smart add-on controller unit for retrofitting onto existing concentrators.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">MODEL 2: HARDWARE + SUBSCRIPTION</div>
+            <h4>Digital Telemetry</h4>
+            <p>Hardware unit with optional subscription for advanced mobile monitoring, compliance logs, and remote reports.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">MODEL 3: B2B PARTNERSHIPS</div>
+            <h4>Distribution Channels</h4>
+            <p>Bulk supply to home healthcare providers, equipment rental companies, and regional clinics.</p>
+          </div>
+        </div>
+        <div class="grid-4" style="margin-top: 10px;">
+          <div class="card" style="padding: 12px;"><span class="card-label">STAGE 1</span><p>Product Development</p></div>
+          <div class="card" style="padding: 12px;"><span class="card-label">STAGE 2</span><p>Expert Validation</p></div>
+          <div class="card" style="padding: 12px;"><span class="card-label">STAGE 3</span><p>Pilot Evaluation</p></div>
+          <div class="card" style="padding: 12px;"><span class="card-label">STAGE 4</span><p>Commercial Launch</p></div>
+        </div>
+      </div>
+
+      <!-- SLIDE 10 -->
+      <div class="slide" id="slide-10">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 10</span>
+          <span class="slide-category">Financial Discipline</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Financial <span>Projections & Planning</span></h2>
+          <div class="slide-subtitle">Rigorous classification of figures: Fact, Assumption, Target, and Forecast.</div>
+        </div>
+        <div class="grid-4">
+          <div class="card">
+            <div class="card-label">BOM & PRODUCTION</div>
+            <h4>Cost Per Unit</h4>
+            <p>Evaluating sensor procurement, ESP32 board assembly, oxygen-rated valves, and casing.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">PRICING STRATEGY</div>
+            <h4>Affordable Access</h4>
+            <p>Estimated selling price designed to be accessible for home healthcare while generating viable gross profit.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">OPERATING EXPENSES</div>
+            <h4>Lean Validation</h4>
+            <p>Prioritizing testing, biomedical consultation, and regulatory compliance before marketing spend.</p>
+          </div>
+          <div class="card">
+            <div class="card-label">3-YEAR TARGETS</div>
+            <h4>Break-Even Path</h4>
+            <p>Staged scale from initial customer evaluation to multi-region commercial distribution.</p>
+          </div>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 16px;">
+          📌 <em>Governing Rule: No financial projection is treated as confirmed revenue until validated through commercial pilots.</em>
+        </div>
+      </div>
+
+      <!-- SLIDE 11 -->
+      <div class="slide" id="slide-11">
+        <div class="slide-header">
+          <span class="slide-num">SLIDE 11</span>
+          <span class="slide-category">Conclusion & Vision</span>
+        </div>
+        <div>
+          <h2 class="slide-title">Social Impact, <span>Future Scope & Conclusion</span></h2>
+          <div class="slide-subtitle">"Making oxygen supply status visible, understandable, and actionable before it becomes an emergency."</div>
+        </div>
+        <div class="grid-2">
+          <div class="card" style="border-color: rgba(16, 185, 129, 0.4);">
+            <div class="card-label">MEASURABLE SOCIAL IMPACT</div>
+            <h4>Protecting Vulnerable Patients</h4>
+            <p>• Improves visibility of oxygen conditions for caregivers.<br>• Reduces anxiety and continuous manual supervision burden.<br>• Early detection of equipment faults to prevent avoidable hypoxia.</p>
+          </div>
+          <div class="card" style="border-color: rgba(0, 229, 255, 0.4);">
+            <div class="card-label">FUTURE SCOPE & ROADMAP</div>
+            <h4>Next Engineering Horizons</h4>
+            <p>• High-pressure oxygen cylinder compatibility.<br>• Hospital-wide central monitoring dashboards.<br>• Enhanced battery backup & advanced fault detection.</p>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
+          <h3 style="color:var(--primary); font-size: 1.3rem;">Thank You!</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Smart Oxygen Supply & Patient Monitoring System · Concept & Prototype Planning</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div style="font-size:0.82rem; color:var(--text-muted); display:flex; gap:14px; align-items:center;">
+      <span>Use <kbd style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; color:#fff;">←</kbd> <kbd style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; color:#fff;">→</kbd> or <kbd style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; color:#fff;">Space</kbd> to Navigate</span>
+      <span>• Total 11 Master Slides</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn" id="prevBtn" onclick="prevSlide()">Previous</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextSlide()">Next Slide</button>
+    </div>
+  </footer>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let currentSlide = 0;
+
+    function updateDeck() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      document.getElementById('slideCounter').innerText = `Slide ${currentSlide + 1} / ${totalSlides}`;
+      document.getElementById('progressBar').style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+      document.getElementById('prevBtn').disabled = currentSlide === 0;
+      document.getElementById('nextBtn').innerText = currentSlide === totalSlides - 1 ? 'Finish' : 'Next Slide';
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateDeck();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateDeck();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullScreen();
+      }
+    });
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    updateDeck();
+  </script>
+</body>
+</html>

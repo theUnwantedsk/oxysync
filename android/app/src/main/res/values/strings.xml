@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">OXYSYNC 2.0</string>
+    <string name="subtitle">Intelligent Oxygen Supply &amp; Failover Platform</string>
+    <string name="sim_disclaimer">SIMULATED DATA — NOT A VALIDATED CLINICAL MEDICAL DEVICE</string>
+    
+    <!-- Navigation Tabs -->
+    <string name="tab_dashboard">Dashboard</string>
+    <string name="tab_supply">Dual Supply</string>
+    <string name="tab_scenarios">Simulation Lab</string>
+    <string name="tab_settings">Connection</string>
+
+    <!-- Supply -->
+    <string name="primary_supply">Primary Cylinder</string>
+    <string name="backup_supply">Backup Cylinder</string>
+    <string name="reserve_buffer">5-Min Reserve Buffer</string>
+    <string name="active_line">ACTIVE SUPPLY LINE</string>
+
+    <!-- Vitals -->
+    <string name="vitals_title">Patient Vitals Monitor</string>
+    <string name="spo2_label">SpO2</string>
+    <string name="pulse_label">Pulse Rate</string>
+    <string name="resp_label">Respiration</string>
+    <string name="pi_label">Perfusion Index</string>
+</resources>

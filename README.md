@@ -1,21 +1,49 @@
 # OXYSYNC 2.0 — Intelligent Oxygen Management Platform
+### Complete Tri-Platform Suite: Web Prototype &bull; ESP32 Firmware &bull; Native Kotlin Android App
 
 [![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?logo=vite)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Recharts](https://img.shields.io/badge/Recharts-3.11-22c55e)](https://recharts.org/)
+[![ESP32](https://img.shields.io/badge/Firmware-ESP32%20WROOM--32-red.svg)](firmware/)
+[![Android](https://img.shields.io/badge/Mobile-Native%20Android%20(Kotlin)-green.svg)](android/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > **Tagline**: *Intelligent Oxygen. Continuous Care.*
 
-**OXYSYNC 2.0** is an intelligent oxygen supply monitoring, predictive depletion estimation, and automated backup management software prototype. It demonstrates how a connected healthcare mechatronics platform can monitor oxygen parameters, estimate remaining oxygen runtimes, predict cylinder depletion, automatically manage primary-to-backup supply failover, activate a conceptual 5-minute reserve buffer during supply transitions, and notify caregivers before emergencies occur.
+**OXYSYNC 2.0** is an intelligent oxygen supply monitoring, predictive depletion estimation, and automated backup management ecosystem. It bridges:
+1. **Interactive Web Simulation Prototype** (React, TypeScript, Tailwind CSS, Recharts).
+2. **ESP32 Embedded Controller Firmware** (16x2 / 20x4 I2C LCD, Boyle's law engine, SoftAP `OXYSYNC-AP` fallback, REST API, WebSockets).
+3. **Native Kotlin Android App** (Jetpack MVVM, custom Canvas Plethysmograph waveform, dual-supply visualizer, 8 scenario triggers, heads-up caregiver alarms).
+4. **Interactive Exhibition Deck** (`deck/index.html`).
 
 ---
 
 > [!IMPORTANT]
 > **SAFETY & SIMULATION NOTICE**:
-> This is a **SOFTWARE-ONLY PROTOTYPE**. There is no connected medical hardware or validated clinical monitoring. All patient readings, oxygen measurements, alerts, valve states, and switching operations are clearly labelled as **SIMULATED**. Never present simulated measurements as real clinical readings.
+> This is a **WORKING PROTOTYPE & SIMULATION SUITE**. All patient readings, oxygen measurements, alerts, valve states, and switching operations are clearly labelled as **SIMULATED**. Never present simulated measurements as real clinical readings.
+
+---
+
+## 📂 Repository Structure
+
+```text
+oxysync/
+├── android/               # Native Android Kotlin Application
+│   ├── app/src/main/      # Kotlin source code, MVVM, Plethysmograph Canvas
+│   ├── build.gradle.kts   # Gradle build scripts
+│   └── README.md          # Android Studio build & run guide
+├── firmware/              # ESP32 Embedded C++ Firmware
+│   ├── include/           # Hardware config, SimulationEngine, DisplayManager
+│   ├── src/               # C++ implementations, REST & WebSocket servers
+│   ├── platformio.ini     # PlatformIO configuration
+│   ├── firmware.ino       # Arduino IDE compatibility entry point
+│   └── README.md          # Wiring diagrams & pinout tables
+├── deck/                  # Exhibition Presentation Slide Deck (HTML5)
+├── src/                   # React 18 + TypeScript Web Simulation Prototype
+├── .planning/             # GSD Requirements, State, and Roadmap
+├── package.json           # Node.js dependencies
+└── README.md              # Master ecosystem guide
+```
 
 ---
 
