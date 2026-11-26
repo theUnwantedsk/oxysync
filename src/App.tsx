@@ -9,6 +9,9 @@ import { OxygenSupplyPanel } from './components/dashboard/OxygenSupplyPanel';
 import { SystemOverviewPanel } from './components/dashboard/SystemOverviewPanel';
 
 // Secondary View Pages (lazy-loaded to keep initial bundle lean)
+const DigitalTwin3DView = lazy(() =>
+  import('./components/views/DigitalTwin3DView').then((m) => ({ default: m.DigitalTwin3DView }))
+);
 const SupplyPathView = lazy(() =>
   import('./components/views/SupplyPathView').then((m) => ({ default: m.SupplyPathView }))
 );
@@ -73,6 +76,12 @@ const MainAppContent: React.FC = () => {
         )}
 
         <Suspense fallback={<ViewFallback />}>
+          {activeTab === 'digital_twin' && (
+            <div className="animate-fadeIn">
+              <DigitalTwin3DView />
+            </div>
+          )}
+
           {activeTab === 'supply_path' && (
             <div className="animate-fadeIn">
               <SupplyPathView />
@@ -117,7 +126,7 @@ const MainAppContent: React.FC = () => {
 
           {activeTab === 'presentation' && (
             <div className="animate-fadeIn">
-              <PresentationModeView />
+              <PresentationModeView onOpen3DTwin={() => setActiveTab('digital_twin')} />
             </div>
           )}
 

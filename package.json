@@ -10,12 +10,14 @@
     "postinstall": "node scripts/patch-rollup.cjs"
   },
   "dependencies": {
+    "@types/three": "^0.187.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.11.0",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@rollup/wasm-node": "^4.68.2",

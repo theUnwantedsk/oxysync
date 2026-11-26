@@ -13,9 +13,14 @@ import {
   TrendingUp, 
   RotateCcw,
   Sparkles,
-  Info
+  Info,
+  Box
 } from 'lucide-react';
 import { useTelemetry } from '../../context/TelemetryContext';
+
+interface PresentationModeViewProps {
+  onOpen3DTwin?: () => void;
+}
 
 interface ArchNode {
   id: string;
@@ -27,7 +32,7 @@ interface ArchNode {
   techDetails: string[];
 }
 
-export const PresentationModeView: React.FC = () => {
+export const PresentationModeView: React.FC<PresentationModeViewProps> = ({ onOpen3DTwin }) => {
   const {
     activeSource,
     primaryCylinder,
@@ -165,6 +170,18 @@ export const PresentationModeView: React.FC = () => {
             Patient SpO₂: <strong className={vitals.spo2 < 90 ? 'text-red-400' : 'text-emerald-400'}>{vitals.spo2}%</strong>
           </span>
         </div>
+
+        {onOpen3DTwin && (
+          <div className="pt-2">
+            <button
+              onClick={onOpen3DTwin}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/25 transition-all active:scale-95"
+            >
+              <Box className="w-4 h-4" />
+              <span>Launch Interactive 3D Hardware Model for Judges</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* System Architecture Diagram (Exact Requested Flow) */}

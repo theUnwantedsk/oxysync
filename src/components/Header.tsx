@@ -18,12 +18,14 @@ import {
   Clock,
   Timer,
   Terminal,
-  Radio
+  Radio,
+  Box
 } from 'lucide-react';
 import { useTelemetry } from '../context/TelemetryContext';
 
 export type ActiveNavTab = 
   | 'dashboard'
+  | 'digital_twin'
   | 'supply_path'
   | 'time_travel'
   | 'demonstration'
@@ -66,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
 
   const navItems: { id: ActiveNavTab; label: string; icon: React.ElementType; badge?: string }[] = [
     { id: 'dashboard', label: 'Clinical Monitor', icon: LayoutDashboard },
+    { id: 'digital_twin', label: '3D Digital Twin', icon: Box, badge: '3D Model' },
     { id: 'supply_path', label: 'Supply Manifold', icon: GitBranch },
     { id: 'time_travel', label: 'Time-Machine & Scrubber', icon: Timer, badge: 'High-Precision' },
     { id: 'demonstration', label: 'Live Demonstration', icon: PlayCircle, badge: '8 Scenarios' },
