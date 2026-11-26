@@ -122,7 +122,8 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
     esp32SyncEnabled,
     esp32ConnectionState,
     esp32Host,
-    usbStatus
+    usbStatus,
+    theme
   } = useTelemetry();
 
   const stateRef = useRef({
@@ -138,7 +139,8 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
     esp32Host,
     exploded,
     lcdPageIndex,
-    autoRotate
+    autoRotate,
+    theme
   });
 
   stateRef.current = {
@@ -154,7 +156,8 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
     esp32Host,
     exploded,
     lcdPageIndex,
-    autoRotate
+    autoRotate,
+    theme
   };
 
   const flyTargetRef = useRef<{
@@ -195,8 +198,11 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x040812);
-    scene.fog = new THREE.FogExp2(0x040812, 0.032);
+    const lightBg = new THREE.Color(0xeef4fb);
+    const darkBg = new THREE.Color(0x040812);
+    const sceneFog = new THREE.FogExp2(0xeef4fb, 0.02);
+    scene.background = stateRef.current.theme === 'light' ? lightBg : darkBg;
+    scene.fog = sceneFog;
 
     const camera = new THREE.PerspectiveCamera(
       42,
@@ -321,6 +327,14 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
       animId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
       const s = stateRef.current;
+      const isLight = s.theme === 'light';
+      scene.background = isLight ? lightBg : darkBg;
+      sceneFog.color.copy(isLight ? lightBg : darkBg);
+      sceneFog.density = isLight ? 0.018 : 0.032;
+      hemiLight.intensity = isLight ? 1.25 : 0.85;
+      keyLight.intensity = isLight ? 1.75 : 1.45;
+      rig.basePlateMat.color.setHex(isLight ? 0xdbe4ef : 0x0b1222);
+      const inactivePipeHex = isLight ? 0x94a3b8 : 0x1e293b;
 
       // Smooth Camera Fly-To
       if (flyTargetRef.current.active) {
@@ -379,23 +393,23 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
       rig.relayLedMats.reserve.emissiveIntensity = isRes ? 1.5 : 0.08;
 
       // Pipe Active Highlighting
-      rig.pipeMats.primary.color.setHex(isPrim ? 0x06b6d4 : 0x1e293b);
+      rig.pipeMats.primary.color.setHex(isPrim ? 0x06b6d4 : inactivePipeHex);
       rig.pipeMats.primary.emissiveIntensity = isPrim ? 0.55 : 0.05;
 
-      rig.pipeMats.secondary.color.setHex(isSec ? 0x14b8a6 : 0x1e293b);
+      rig.pipeMats.secondary.color.setHex(isSec ? 0x14b8a6 : inactivePipeHex);
       rig.pipeMats.secondary.emissiveIntensity = isSec ? 0.55 : 0.05;
 
-      rig.pipeMats.manifold.color.setHex(isPrim || isSec ? 0x22d3ee : 0x1e293b);
+      rig.pipeMats.manifold.color.setHex(isPrim || isSec ? 0x22d3ee : inactivePipeHex);
       rig.pipeMats.manifold.emissiveIntensity = isPrim || isSec ? 0.45 : 0.05;
 
-      rig.pipeMats.reserve.color.setHex(isRes ? 0xef4444 : 0x1e293b);
+      rig.pipeMats.reserve.color.setHex(isRes ? 0xef4444 : inactivePipeHex);
       rig.pipeMats.reserve.emissiveIntensity = isRes ? 0.65 : 0.05;
 
-      rig.pipeMats.bleed.color.setHex(s.reserveBuffer.isRefilling ? 0x38bdf8 : 0x1e293b);
+      rig.pipeMats.bleed.color.setHex(s.reserveBuffer.isRefilling ? 0x38bdf8 : inactivePipeHex);
       rig.pipeMats.bleed.emissiveIntensity = s.reserveBuffer.isRefilling ? 0.5 : 0.05;
 
       rig.pipeMats.delivery.color.setHex(
-        isRes ? 0xef4444 : isPrim || isSec ? 0x22d3ee : 0x1e293b
+        isRes ? 0xef4444 : isPrim || isSec ? 0x22d3ee : inactivePipeHex
       );
       rig.pipeMats.delivery.emissiveIntensity = s.activeSource === 'none' ? 0.02 : 0.5;
 

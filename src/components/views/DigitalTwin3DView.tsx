@@ -36,7 +36,8 @@ export const DigitalTwin3DView: React.FC = () => {
     activeSource,
     vitals,
     settings,
-    setFlowRate
+    setFlowRate,
+    theme
   } = useTelemetry();
 
   const [selectedComponent, setSelectedComponent] = useState<TwinComponentId>('overview');
@@ -148,7 +149,11 @@ export const DigitalTwin3DView: React.FC = () => {
       {/* Main 3D Stage + Judge Inspector Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* 3D WebGL Canvas Stage */}
-        <div className="lg:col-span-8 bg-[#040812] rounded-3xl border border-slate-800 overflow-hidden shadow-2xl relative h-[340px] sm:h-[440px] lg:h-[540px]">
+        <div
+          className={`lg:col-span-8 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl relative h-[340px] sm:h-[440px] lg:h-[540px] ${
+            theme === 'light' ? 'bg-[#eef4fb]' : 'bg-[#040812]'
+          }`}
+        >
           <OxySync3DCanvas
             selectedComponent={selectedComponent}
             onSelectComponent={setSelectedComponent}

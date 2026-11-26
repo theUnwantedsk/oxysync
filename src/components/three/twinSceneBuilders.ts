@@ -4,6 +4,8 @@ import { TwinComponentId } from '../../data/digitalTwinCatalog';
 export interface TwinSceneRefs {
   rootGroup: THREE.Group;
   hitTargets: THREE.Object3D[];
+  basePlateMat: THREE.MeshStandardMaterial;
+  gridHelper: THREE.GridHelper;
   primaryFillMesh: THREE.Mesh;
   primaryFillMat: THREE.MeshStandardMaterial;
   primaryShellMesh: THREE.Mesh;
@@ -204,16 +206,21 @@ export function buildOxySyncRig(): TwinSceneRefs {
   const hitTargets: THREE.Object3D[] = [];
   const explodableParts: TwinSceneRefs['explodableParts'] = [];
 
-  // 1. Dark Anodized Medical Exhibition Chassis Base
+  // 1. Medical Exhibition Chassis Base
+  const basePlateMat = new THREE.MeshStandardMaterial({
+    color: 0xdbe4ef,
+    metalness: 0.35,
+    roughness: 0.45
+  });
   const basePlate = new THREE.Mesh(
     new THREE.BoxGeometry(10.2, 0.24, 5.8),
-    new THREE.MeshStandardMaterial({ color: 0x0b1222, metalness: 0.65, roughness: 0.45 })
+    basePlateMat
   );
   basePlate.position.set(0.2, -0.12, 0.1);
   basePlate.receiveShadow = true;
   rootGroup.add(basePlate);
 
-  const gridHelper = new THREE.GridHelper(10.0, 20, 0x0ea5e9, 0x162238);
+  const gridHelper = new THREE.GridHelper(10.0, 20, 0x0284c7, 0x94a3b8);
   gridHelper.position.set(0.2, 0.005, 0.1);
   rootGroup.add(gridHelper);
 
@@ -665,6 +672,8 @@ export function buildOxySyncRig(): TwinSceneRefs {
   return {
     rootGroup,
     hitTargets,
+    basePlateMat,
+    gridHelper,
     primaryFillMesh: primary.fillMesh,
     primaryFillMat: primary.fillMat,
     primaryShellMesh: primary.shellMesh,

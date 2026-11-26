@@ -254,7 +254,7 @@ export const HardwareTelemetryView: React.FC = () => {
 
       {/* Live USB Serial Console (shown when connected or when logs exist) */}
       {(isUsbLive || usbRawLogs.length > 0) && (
-        <div className="bg-[#030712] p-4 sm:p-5 rounded-2xl border border-emerald-500/30 shadow-xl space-y-3">
+        <div data-dark-surface="true" className="bg-[#030712] p-4 sm:p-5 rounded-2xl border border-emerald-500/30 shadow-xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-300">
               <Usb className="w-4 h-4" />
@@ -406,7 +406,7 @@ export const HardwareTelemetryView: React.FC = () => {
       </div>
 
       {/* Live Rolling Serial UART Hex / JSON Stream */}
-      <div className="bg-[#030712] p-4 sm:p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-4">
+      <div data-dark-surface="true" className="bg-[#030712] p-4 sm:p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />

@@ -99,7 +99,7 @@ export const SupplyPathView: React.FC = () => {
         </div>
 
         {/* SVG Diagram */}
-        <div className="w-full overflow-x-auto">
+        <div data-dark-surface="true" className="w-full overflow-x-auto rounded-xl bg-[#060a14] p-2 border border-slate-800">
           <svg viewBox="0 0 1000 500" className="w-full min-w-[800px] h-auto select-none">
             <defs>
               {/* Pipe glow filter */}

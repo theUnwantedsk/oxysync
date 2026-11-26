@@ -305,7 +305,10 @@ export const BedsideMonitorCard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
         {/* Multi-Channel CRT Canvas (ECG + Pleth) */}
-        <div className="lg:col-span-3 bg-[#030712] p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-3 relative overflow-hidden shadow-inner">
+        <div
+          data-dark-surface="true"
+          className="lg:col-span-3 bg-[#030712] p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-3 relative overflow-hidden shadow-inner"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono">
             <div className="flex items-center gap-3">
               <span className="text-emerald-400 font-bold flex items-center gap-1.5">

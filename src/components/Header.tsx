@@ -19,7 +19,9 @@ import {
   Timer,
   Terminal,
   Radio,
-  Box
+  Box,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useTelemetry } from '../context/TelemetryContext';
 
@@ -61,7 +63,9 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
     setSimulationSpeed,
     esp32SyncEnabled,
     esp32ConnectionState,
-    usbStatus
+    usbStatus,
+    theme,
+    toggleTheme
   } = useTelemetry();
 
   const activeAlertsCount = alerts.filter(a => !a.acknowledged).length;
@@ -260,6 +264,19 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
               {activeAlertsCount} ALERT{activeAlertsCount > 1 ? 'S' : ''}
             </span>
           )}
+
+          {/* Theme Mode Toggle (Light / Dark) */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            className="p-1.5 rounded-md border text-xs bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300 transition-colors"
+          >
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4 text-slate-600" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-400" />
+            )}
+          </button>
 
           {/* Audio Mute/Unmute */}
           <button

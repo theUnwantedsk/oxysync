@@ -76,8 +76,10 @@ interface TelemetryContextType {
   telemetryPackets: TelemetryPacket[];
   isMuted: boolean;
   snoozeRemaining: number;
+  theme: 'light' | 'dark';
 
   // Actions
+  toggleTheme: () => void;
   triggerScenario: (scenarioId: EmergencyScenarioId) => void;
   resetSimulation: () => void;
   switchActiveSource: (source: ActiveSupplySource, reason?: string, triggerType?: SwitchingEvent['triggerType']) => void;
@@ -341,6 +343,29 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [telemetryPackets, setTelemetryPackets] = useState<TelemetryPacket[]>([]);
   const [isMuted, setIsMuted] = useState<boolean>(!settings.soundEnabled);
   const [snoozeRemaining, setSnoozeRemaining] = useState<number>(0);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('oxysync_2_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {
+      // Ignore storage error
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    try {
+      localStorage.setItem('oxysync_2_theme', theme);
+    } catch {
+      // Ignore storage error
+    }
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  }, []);
 
   // Real-time ESP32 USB Serial Bridge State
   const usbSupported = usbSerialBridge.isSupported();
@@ -1572,6 +1597,8 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         telemetryPackets,
         isMuted,
         snoozeRemaining,
+        theme,
+        toggleTheme,
         triggerScenario,
         resetSimulation,
         switchActiveSource,
