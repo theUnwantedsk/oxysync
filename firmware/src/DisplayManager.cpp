@@ -2,13 +2,16 @@
  * OXYSYNC 2.0 — Display Manager Implementation
  * 
  * Implements 5 structured LCD pages with adaptive 16x2 / 20x4 support,
- * custom 5x8 pixel medical glyphs, and auto-cycling.
+ * automatic I2C address detection (0x27 / 0x3F / bus scan),
+ * custom 5x8 pixel medical glyphs (slots 1-5 to avoid C-string NUL),
+ * flicker-free padded line rendering, and auto-cycling.
  */
 
 #include "DisplayManager.h"
 
 // ============================================================================
-// CUSTOM 5x8 PIXEL LCD GLYPH DEFINITIONS
+// CUSTOM 5x8 PIXEL LCD GLYPH DEFINITIONS (Stored in CGRAM slots 1..5)
+// Note: Slot 0 is intentionally unused in C-strings because '\x00' is NUL!
 // ============================================================================
 static const uint8_t GLYPH_CYLINDER[8] = {
     0b01110,
@@ -65,9 +68,17 @@ static const uint8_t GLYPH_ARROW[8] = {
     0b00000
 };
 
+#define CHAR_CYLINDER "\x01"
+#define CHAR_HEART    "\x02"
+#define CHAR_WIFI     "\x03"
+#define CHAR_ALERT    "\x04"
+#define CHAR_ARROW    "\x05"
+
 DisplayManager::DisplayManager(SimulationEngine& simEngine)
-    : m_lcd(LCD_I2C_ADDR, LCD_COLUMNS, LCD_ROWS),
+    : m_lcd(nullptr),
       m_sim(simEngine),
+      m_lcdAddr(LCD_I2C_ADDR),
+      m_lcdReady(false),
       m_currentPage(PAGE_HOME),
       m_autoCycleEnabled(true),
       m_lastPageSwitchMs(0),
@@ -78,37 +89,126 @@ DisplayManager::DisplayManager(SimulationEngine& simEngine)
 {
 }
 
+DisplayManager::~DisplayManager() {
+    if (m_lcd != nullptr) {
+        delete m_lcd;
+        m_lcd = nullptr;
+    }
+}
+
+uint8_t DisplayManager::scanI2CAddress() {
+    // Check common PCF8574 / PCF8574A backpack addresses first
+    const uint8_t preferred[] = {
+        LCD_I2C_ADDR, 0x27, 0x3F, 0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x20,
+        0x3E, 0x3D, 0x3C, 0x3B, 0x3A, 0x39, 0x38
+    };
+
+    for (size_t i = 0; i < sizeof(preferred); i++) {
+        uint8_t addr = preferred[i];
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            return addr;
+        }
+    }
+
+    // Full 7-bit I2C bus scan fallback
+    for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            return addr;
+        }
+    }
+
+    return 0;
+}
+
 void DisplayManager::begin() {
-    // Initialize I2C bus with configured pins
+    // Initialize I2C bus with configured pins at reliable 100 kHz standard speed
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-    
-    m_lcd.init();
-    m_lcd.backlight();
-    m_lcd.clear();
+    Wire.setClock(100000);
+    // Allow HD44780 power-on stabilization (>40ms after Vcc stabilizes)
+    delay(60);
+
+    uint8_t foundAddr = scanI2CAddress();
+    if (foundAddr != 0) {
+        m_lcdAddr = foundAddr;
+        m_lcdReady = true;
+        Serial.printf("[LCD] I2C LCD detected at address 0x%02X (SDA=%d, SCL=%d)\n",
+                      m_lcdAddr, I2C_SDA_PIN, I2C_SCL_PIN);
+    } else {
+        m_lcdAddr = LCD_I2C_ADDR;
+        m_lcdReady = false;
+        Serial.printf("[LCD] WARNING: No I2C device found on SDA=%d, SCL=%d! Falling back to 0x%02X.\n",
+                      I2C_SDA_PIN, I2C_SCL_PIN, m_lcdAddr);
+        Serial.println(F("[LCD] Check: 1) VCC->5V/VIN, 2) GND->GND, 3) SDA->GPIO21, SCL->GPIO22, 4) Contrast pot on backpack."));
+    }
+
+    if (m_lcd != nullptr) {
+        delete m_lcd;
+    }
+    m_lcd = new LiquidCrystal_I2C(m_lcdAddr, LCD_COLUMNS, LCD_ROWS);
+    m_lcd->init();
+    // Re-assert custom I2C pins & clock in case LiquidCrystal_I2C::init() invoked Wire.begin()
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.setClock(100000);
+    delay(50);
+
+    m_lcd->backlight();
+    m_lcd->clear();
+    delay(5);
 
     registerCustomCharacters();
+    // Return from CGRAM write mode back to DDRAM before printing
+    m_lcd->home();
+    delay(5);
 
     // Show initial splash banner
-    m_lcd.setCursor(0, 0);
-    m_lcd.print("  OXYSYNC  2.0  ");
-    m_lcd.setCursor(0, 1);
-    m_lcd.print("Smart O2 Monitor");
+    printPaddedLine(0, "  OXYSYNC  2.0  ");
+    printPaddedLine(1, "Smart O2 Monitor");
     if (LCD_ROWS >= 4) {
-        m_lcd.setCursor(0, 2);
-        m_lcd.print("Connected System");
-        m_lcd.setCursor(0, 3);
-        m_lcd.print("Booting Core...");
+        printPaddedLine(2, "Connected System");
+        printPaddedLine(3, "Booting Core...");
     }
 
     m_lastPageSwitchMs = millis();
+    m_lastRenderMs = millis();
 }
 
 void DisplayManager::registerCustomCharacters() {
-    m_lcd.createChar(0, const_cast<uint8_t*>(GLYPH_CYLINDER));
-    m_lcd.createChar(1, const_cast<uint8_t*>(GLYPH_HEART));
-    m_lcd.createChar(2, const_cast<uint8_t*>(GLYPH_WIFI));
-    m_lcd.createChar(3, const_cast<uint8_t*>(GLYPH_ALERT));
-    m_lcd.createChar(4, const_cast<uint8_t*>(GLYPH_ARROW));
+    if (m_lcd == nullptr) return;
+    // Use slots 1..5 so '\x00' is never embedded inside C-strings
+    m_lcd->createChar(1, const_cast<uint8_t*>(GLYPH_CYLINDER));
+    m_lcd->createChar(2, const_cast<uint8_t*>(GLYPH_HEART));
+    m_lcd->createChar(3, const_cast<uint8_t*>(GLYPH_WIFI));
+    m_lcd->createChar(4, const_cast<uint8_t*>(GLYPH_ALERT));
+    m_lcd->createChar(5, const_cast<uint8_t*>(GLYPH_ARROW));
+}
+
+void DisplayManager::printPaddedLine(uint8_t row, const char* text) {
+    if (m_lcd == nullptr || row >= LCD_ROWS) return;
+
+    char padded[21];
+    const int cols = (LCD_COLUMNS > 20) ? 20 : LCD_COLUMNS;
+    int len = 0;
+    if (text != nullptr) {
+        while (len < cols && text[len] != '\0') {
+            padded[len] = text[len];
+            len++;
+        }
+    }
+    while (len < cols) {
+        padded[len++] = ' ';
+    }
+    padded[cols] = '\0';
+
+    m_lcd->setCursor(0, row);
+    m_lcd->print(padded);
+}
+
+void DisplayManager::showStatusBanner(const char* line0, const char* line1) {
+    if (m_lcd == nullptr) return;
+    printPaddedLine(0, line0);
+    printPaddedLine(1, line1);
 }
 
 void DisplayManager::setNetworkInfo(bool isApMode, const String& ipAddress, int clientCount) {
@@ -130,17 +230,23 @@ void DisplayManager::previousPage() {
 void DisplayManager::setPage(DisplayPage page) {
     m_currentPage = page;
     m_lastPageSwitchMs = millis();
-    m_lcd.clear();
+    if (m_lcd != nullptr) {
+        m_lcd->clear();
+        delay(3);
+    }
     renderCurrentPage();
 }
 
 void DisplayManager::update(unsigned long currentMillis) {
+    if (m_lcd == nullptr) return;
+
     // Auto-cycle pages if enabled
     if (m_autoCycleEnabled && (currentMillis - m_lastPageSwitchMs >= LCD_PAGE_CYCLE_MS)) {
         nextPage();
+        return;
     }
 
-    // Refresh display at ~4 Hz (every 250ms) for responsive numbers
+    // Refresh display at ~4 Hz (every 250ms) without clearing to eliminate flicker
     if (currentMillis - m_lastRenderMs >= 250) {
         m_lastRenderMs = currentMillis;
         renderCurrentPage();
@@ -171,26 +277,27 @@ void DisplayManager::renderCurrentPage() {
 }
 
 void DisplayManager::renderPageHome() {
-    // Line 0: [Logo/Name] [Heart icon] [Pulse]
     char line0[21];
     const auto& vitals = m_sim.getVitals();
-    snprintf(line0, sizeof(line0), "OXYSYNC \x01%3d bpm", vitals.pulseRate);
-    m_lcd.setCursor(0, 0);
-    m_lcd.print(line0);
+    snprintf(line0, sizeof(line0), "OXYSYNC " CHAR_HEART "%3d bpm", vitals.pulseRate);
+    printPaddedLine(0, line0);
 
-    // Line 1: [SpO2] [Wi-Fi mode]
     char line1[21];
-    const char* netMode = m_isApMode ? "AP" : "STA";
-    snprintf(line1, sizeof(line1), "SpO2:%.0f%% \x02[%s]", vitals.spo2, netMode);
-    m_lcd.setCursor(0, 1);
-    m_lcd.print(line1);
+    const char* netMode = m_isApMode ? "AP " : "STA";
+    snprintf(line1, sizeof(line1), "SpO2:%3.0f%% " CHAR_WIFI "[%s]", vitals.spo2, netMode);
+    printPaddedLine(1, line1);
 
-    // 20x4 extended lines
     if (LCD_ROWS >= 4) {
-        m_lcd.setCursor(0, 2);
-        m_lcd.print("Health: Nominal ");
-        m_lcd.setCursor(0, 3);
-        m_lcd.print("Sim: Boyle's Law");
+        AlertSeverity sev = m_sim.getAlertSeverity();
+        const char* statusTxt = (sev == SEV_CRITICAL) ? "State: CRITICAL!" :
+                                (sev == SEV_WARNING)  ? "State: WARNING" : "State: Nominal";
+        printPaddedLine(2, statusTxt);
+
+        SupplySource active = m_sim.getActiveSource();
+        const char* srcTxt = (active == SOURCE_PRIMARY) ? "Line: PRIMARY" :
+                             (active == SOURCE_BACKUP)  ? "Line: BACKUP" :
+                             (active == SOURCE_RESERVE) ? "Line: 5m RESERVE" : "Line: DEPLETED";
+        printPaddedLine(3, srcTxt);
     }
 }
 
@@ -199,64 +306,51 @@ void DisplayManager::renderPageSupply() {
     const auto& backup = m_sim.getBackup();
     SupplySource active = m_sim.getActiveSource();
 
-    // Line 0: Primary Supply Status
     char line0[21];
     char pTag = (active == SOURCE_PRIMARY) ? '*' : ' ';
-    snprintf(line0, sizeof(line0), "\x00 Pri%c:%3.0f%% %3.0fB", pTag, primary.percentage, primary.pressureBar);
-    m_lcd.setCursor(0, 0);
-    m_lcd.print(line0);
+    snprintf(line0, sizeof(line0), CHAR_CYLINDER "Pri%c:%3.0f%% %3.0fB", pTag, primary.percentage, primary.pressureBar);
+    printPaddedLine(0, line0);
 
-    // Line 1: Backup Supply Status
     char line1[21];
     char bTag = (active == SOURCE_BACKUP) ? '*' : ' ';
-    snprintf(line1, sizeof(line1), "\x00 Bck%c:%3.0f%% %3.0fB", bTag, backup.percentage, backup.pressureBar);
-    m_lcd.setCursor(0, 1);
-    m_lcd.print(line1);
+    snprintf(line1, sizeof(line1), CHAR_CYLINDER "Bck%c:%3.0f%% %3.0fB", bTag, backup.percentage, backup.pressureBar);
+    printPaddedLine(1, line1);
 
     if (LCD_ROWS >= 4) {
-        // Line 2: Reserve Buffer status
         const auto& reserve = m_sim.getReserve();
         char line2[21];
         char rTag = (active == SOURCE_RESERVE) ? '*' : ' ';
         snprintf(line2, sizeof(line2), "Res%c:%3.0f%% %3.0fs", rTag, reserve.percentage, reserve.remainingSeconds);
-        m_lcd.setCursor(0, 2);
-        m_lcd.print(line2);
+        printPaddedLine(2, line2);
 
-        // Line 3: Active Line status
         const char* srcStr = (active == SOURCE_PRIMARY) ? "Active: PRIMARY" :
-                             (active == SOURCE_BACKUP) ? "Active: BACKUP" :
+                             (active == SOURCE_BACKUP)  ? "Active: BACKUP" :
                              (active == SOURCE_RESERVE) ? "Active: 5m-RES" : "Active: NONE!";
-        m_lcd.setCursor(0, 3);
-        m_lcd.print(srcStr);
+        printPaddedLine(3, srcStr);
     }
 }
 
 void DisplayManager::renderPagePrediction() {
     float estMin = m_sim.getEstimatedRemainingMinutes();
+    if (estMin > 5999.0f) estMin = 5999.0f;
     int hours = static_cast<int>(estMin) / 60;
     int mins = static_cast<int>(estMin) % 60;
     float flow = m_sim.getFlowRate();
 
-    // Line 0: Remaining Time
     char line0[21];
-    snprintf(line0, sizeof(line0), "Rem:%02dh %02dm   ", hours, mins);
-    m_lcd.setCursor(0, 0);
-    m_lcd.print(line0);
+    snprintf(line0, sizeof(line0), "Rem:%02dh %02dm", hours, mins);
+    printPaddedLine(0, line0);
 
-    // Line 1: Flow rate & status
     char line1[21];
-    const char* status = (estMin < 30.0f) ? "LOW!" : "OK ";
-    snprintf(line1, sizeof(line1), "Flow:%.1fL %s   ", flow, status);
-    m_lcd.setCursor(0, 1);
-    m_lcd.print(line1);
+    const char* status = (estMin < 30.0f) ? "LOW!" : "OK";
+    snprintf(line1, sizeof(line1), "Flow:%.1fL %s", flow, status);
+    printPaddedLine(1, line1);
 
     if (LCD_ROWS >= 4) {
-        m_lcd.setCursor(0, 2);
-        m_lcd.print("Est. Depletion:");
+        printPaddedLine(2, "Est. Depletion:");
         char line3[21];
         snprintf(line3, sizeof(line3), "dV/dt = -%.1f L/m", flow);
-        m_lcd.setCursor(0, 3);
-        m_lcd.print(line3);
+        printPaddedLine(3, line3);
     }
 }
 
@@ -264,49 +358,29 @@ void DisplayManager::renderPageAlerts() {
     AlertSeverity sev = m_sim.getAlertSeverity();
     const char* alertMsg = m_sim.getActiveAlertMessage();
 
-    // Line 0: Alert indicator
-    char line0[21];
-    const char* sevStr = (sev == SEV_CRITICAL) ? "\x03 CRITICAL \x03" :
-                         (sev == SEV_WARNING) ? "\x03 WARNING  " : "Status: NORMAL";
-    snprintf(line0, sizeof(line0), "%-16s", sevStr);
-    m_lcd.setCursor(0, 0);
-    m_lcd.print(line0);
-
-    // Line 1: Alert message truncated to 16 chars
-    char line1[21];
-    snprintf(line1, sizeof(line1), "%-16.16s", alertMsg);
-    m_lcd.setCursor(0, 1);
-    m_lcd.print(line1);
+    const char* sevStr = (sev == SEV_CRITICAL) ? CHAR_ALERT " CRITICAL " CHAR_ALERT :
+                         (sev == SEV_WARNING)  ? CHAR_ALERT " WARNING" : "Status: NORMAL";
+    printPaddedLine(0, sevStr);
+    printPaddedLine(1, alertMsg);
 
     if (LCD_ROWS >= 4) {
-        m_lcd.setCursor(0, 2);
-        m_lcd.print("Sensors: Online ");
-        m_lcd.setCursor(0, 3);
-        m_lcd.print("Auto-Switch: ON ");
+        printPaddedLine(2, "Sensors: Online");
+        printPaddedLine(3, "Auto-Switch: ON");
     }
 }
 
 void DisplayManager::renderPageSystem() {
-    // Line 0: Wi-Fi mode & Clients
     char line0[21];
     const char* mode = m_isApMode ? "SoftAP" : "STA-Net";
-    snprintf(line0, sizeof(line0), "%s Cl:%d   ", mode, m_clientCount);
-    m_lcd.setCursor(0, 0);
-    m_lcd.print(line0);
+    snprintf(line0, sizeof(line0), "%s Cl:%d", mode, m_clientCount);
+    printPaddedLine(0, line0);
 
-    // Line 1: IP address truncated to 16 chars
-    char line1[21];
-    snprintf(line1, sizeof(line1), "%-16.16s", m_ipAddress.c_str());
-    m_lcd.setCursor(0, 1);
-    m_lcd.print(line1);
+    printPaddedLine(1, m_ipAddress.c_str());
 
     if (LCD_ROWS >= 4) {
         char line2[21];
         snprintf(line2, sizeof(line2), "Up:%lus Heap:%uk", millis() / 1000, ESP.getFreeHeap() / 1024);
-        m_lcd.setCursor(0, 2);
-        m_lcd.print(line2);
-
-        m_lcd.setCursor(0, 3);
-        m_lcd.print("REST:80  WS:81  ");
+        printPaddedLine(2, line2);
+        printPaddedLine(3, "REST:80  WS:81");
     }
 }

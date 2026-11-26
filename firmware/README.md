@@ -74,6 +74,24 @@ All endpoints include CORS headers (`Access-Control-Allow-Origin: *`).
 
 ---
 
+## 5B. USB Serial Real-Time Data Bridge (`115200` baud)
+
+- Plug the ESP32 into a PC with a data-capable USB cable (`115200` baud, 8-N-1).
+- The ESP32 streams newline-delimited JSON telemetry packets (`"type": "telemetry"`, `"transport": "usb_serial"`) at **4 Hz (250 ms)** alongside `lcdReady` and `lcdAddress` diagnostics.
+- Send newline-terminated JSON commands back over USB to control the ESP32 in real time:
+  - `{"action":"scenario","id":3}`
+  - `{"action":"switch","target":"PRIMARY"|"BACKUP"|"RESERVE"|"AUTO"}`
+  - `{"action":"flow","rate":5.0}`
+  - `{"action":"speed","speed":5.0}`
+  - `{"action":"threshold","threshold":15}`
+  - `{"action":"refill","cylinder":"ALL"|"PRIMARY"|"BACKUP"}`
+  - `{"action":"reset"}`
+  - `{"action":"ping"}`
+  - `{"action":"stream","enabled":true,"intervalMs":250}`
+- Connect directly from Chrome/Edge using the **Connect ESP32 (USB)** button in the OXYSYNC 2.0 Web App (Web Serial API).
+
+---
+
 ## 6. How to Flash
 
 ### Option A: PlatformIO (Recommended)

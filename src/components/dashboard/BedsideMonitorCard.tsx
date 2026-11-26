@@ -23,8 +23,14 @@ export const BedsideMonitorCard: React.FC = () => {
   } = useTelemetry();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const vitalsRef = useRef(vitals);
+  const sweepSpeedRef = useRef(settings.sweepSpeedMmPerSec);
+  const sweepXRef = useRef(0);
 
-  // Multi-Lead 60 FPS Oscilloscope Canvas with Medical Sweep Bar
+  vitalsRef.current = vitals;
+  sweepSpeedRef.current = settings.sweepSpeedMmPerSec;
+
+  // Multi-Lead 60 FPS Oscilloscope Canvas with continuous Medical Sweep Bar
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -32,11 +38,11 @@ export const BedsideMonitorCard: React.FC = () => {
     if (!ctx) return;
 
     let animId: number;
-    let sweepX = 0;
 
     const render = () => {
       const width = canvas.width;
       const height = canvas.height;
+      const curVitals = vitalsRef.current;
 
       // Draw dark phosphor medical CRT background
       ctx.fillStyle = '#030712';
@@ -60,7 +66,7 @@ export const BedsideMonitorCard: React.FC = () => {
       }
 
       // Draw Channel 1: Lead II ECG (Green Trace)
-      const ecgData = vitals.ecgWaveform;
+      const ecgData = curVitals.ecgWaveform;
       const ecgHeight = height * 0.45;
       const ecgBaseline = ecgHeight * 0.6;
 
@@ -94,12 +100,12 @@ export const BedsideMonitorCard: React.FC = () => {
       ctx.stroke();
 
       // Draw Channel 2: Plethysmograph PPG (Cyan Trace)
-      const plethData = vitals.plethWaveform;
+      const plethData = curVitals.plethWaveform;
       const plethTop = height * 0.52;
       const plethHeight = height * 0.45;
 
       ctx.beginPath();
-      const plethColor = vitals.spo2 < 90 ? '#ef4444' : '#06b6d4';
+      const plethColor = curVitals.spo2 < 90 ? '#ef4444' : '#06b6d4';
       ctx.strokeStyle = plethColor;
       ctx.lineWidth = 2.2;
       ctx.shadowColor = plethColor;
@@ -117,10 +123,11 @@ export const BedsideMonitorCard: React.FC = () => {
       // Channel 2 Label
       ctx.fillStyle = plethColor;
       ctx.font = 'bold 10px monospace';
-      ctx.fillText(`PPG PLETH · SpO₂ ${vitals.spo2}%`, 12, height * 0.54);
+      ctx.fillText(`PPG PLETH · SpO₂ ${curVitals.spo2}%`, 12, height * 0.54);
 
-      // Erase Sweep Bar (Medical Phosphor Erase Head)
-      sweepX = (sweepX + (settings.sweepSpeedMmPerSec / 25) * 4) % width;
+      // Continuous Erase Sweep Bar (Medical Phosphor Erase Head)
+      sweepXRef.current = (sweepXRef.current + (sweepSpeedRef.current / 25) * 4) % width;
+      const sweepX = sweepXRef.current;
       const sweepGradient = ctx.createLinearGradient(sweepX - 25, 0, sweepX + 5, 0);
       sweepGradient.addColorStop(0, 'rgba(3, 7, 18, 0)');
       sweepGradient.addColorStop(0.7, 'rgba(3, 7, 18, 0.85)');
@@ -141,7 +148,10 @@ export const BedsideMonitorCard: React.FC = () => {
 
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [vitals.ecgWaveform, vitals.plethWaveform, vitals.spo2, settings.sweepSpeedMmPerSec]);
+  }, []);
+
+  const clampedSpo2 = Math.max(70, Math.min(100, vitals.spo2));
+  const qrsToneHz = Math.round(400 + Math.pow((clampedSpo2 - 70) / 30, 1.4) * 500);
 
   const getSpo2Color = (spo2: number) => {
     if (spo2 >= 95) return 'text-emerald-400 border-emerald-500/40 bg-emerald-950/20';
@@ -150,7 +160,7 @@ export const BedsideMonitorCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#080d1a] rounded-3xl border border-slate-800 p-6 shadow-2xl backdrop-blur-md space-y-6">
+    <div className="bg-[#080d1a] rounded-3xl border border-slate-800 p-4 sm:p-6 shadow-2xl backdrop-blur-md space-y-5 sm:space-y-6">
       
       {/* Bedside Monitor Header with Clock Chronometer */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
@@ -207,83 +217,83 @@ export const BedsideMonitorCard: React.FC = () => {
           >
             {settings.pulseOximeterBeepEnabled ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
             <span className="text-[11px] font-bold">
-              {settings.pulseOximeterBeepEnabled ? `QRS Tone (${Math.round(400 + Math.pow((vitals.spo2 - 70) / 30, 1.4) * 500)} Hz)` : 'Muted'}
+              {settings.pulseOximeterBeepEnabled ? `QRS Tone (${qrsToneHz} Hz)` : 'Muted'}
             </span>
           </button>
         </div>
       </div>
 
       {/* Main Telemetry Readout Grid (Digital 7-Segment Medical Aesthetics) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* SpO2 Card */}
-        <div className={`p-5 rounded-2xl border transition-all ${getSpo2Color(vitals.spo2)}`}>
-          <div className="flex items-center justify-between text-xs opacity-80 mb-1">
+        <div className={`p-3.5 sm:p-5 rounded-2xl border transition-all ${getSpo2Color(vitals.spo2)}`}>
+          <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-80 mb-1 gap-1">
             <span className="font-bold tracking-wider font-mono">SpO₂ SATURATION</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40">CALIBRATED</span>
+            <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 hidden sm:inline">CALIBRATED</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight">{vitals.spo2}</span>
-            <span className="text-lg font-bold opacity-75">%</span>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight">{vitals.spo2}</span>
+            <span className="text-sm sm:text-lg font-bold opacity-75">%</span>
           </div>
-          <div className="mt-3 text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-current/20 pt-2">
+          <div className="mt-3 text-[10px] sm:text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-current/20 pt-2">
             <span>Range: 94-98%</span>
             <span className="font-bold">{vitals.spo2 < 90 ? 'HYPOXEMIC' : 'NOMINAL'}</span>
           </div>
         </div>
 
         {/* Pulse Rate Card */}
-        <div className="p-5 rounded-2xl border border-rose-500/40 bg-rose-950/20 text-rose-300">
-          <div className="flex items-center justify-between text-xs opacity-80 mb-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-rose-500/40 bg-rose-950/20 text-rose-300">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-80 mb-1 gap-1">
             <span className="font-bold tracking-wider font-mono flex items-center gap-1.5">
-              <Heart className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+              <Heart className="w-3.5 h-3.5 text-rose-400 animate-pulse shrink-0" />
               HEART RATE
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40">LEAD II</span>
+            <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 hidden sm:inline">LEAD II</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">{vitals.pulseRate}</span>
-            <span className="text-lg font-bold opacity-75">BPM</span>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-white">{vitals.pulseRate}</span>
+            <span className="text-sm sm:text-lg font-bold opacity-75">BPM</span>
           </div>
-          <div className="mt-3 text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-rose-500/20 pt-2">
+          <div className="mt-3 text-[10px] sm:text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-rose-500/20 pt-2">
             <span>Sinus Rhythm</span>
             <span>{vitals.pulseRate > 100 ? 'Tachycardia' : 'Normal'}</span>
           </div>
         </div>
 
         {/* Respiratory Rate Card */}
-        <div className="p-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 text-cyan-300">
-          <div className="flex items-center justify-between text-xs opacity-80 mb-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 text-cyan-300">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-80 mb-1 gap-1">
             <span className="font-bold tracking-wider font-mono flex items-center gap-1.5">
-              <Wind className="w-3.5 h-3.5 text-cyan-400" />
-              RESPIRATORY RATE
+              <Wind className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              RESP RATE
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40">PNEUMO</span>
+            <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 hidden sm:inline">PNEUMO</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">{vitals.respiratoryRate}</span>
-            <span className="text-lg font-bold opacity-75">br/min</span>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-white">{vitals.respiratoryRate}</span>
+            <span className="text-xs sm:text-lg font-bold opacity-75">br/min</span>
           </div>
-          <div className="mt-3 text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-cyan-500/20 pt-2">
+          <div className="mt-3 text-[10px] sm:text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-cyan-500/20 pt-2">
             <span>Normal: 12-20</span>
             <span>Spontaneous</span>
           </div>
         </div>
 
         {/* Perfusion Index Card */}
-        <div className="p-5 rounded-2xl border border-teal-500/40 bg-teal-950/20 text-teal-300">
-          <div className="flex items-center justify-between text-xs opacity-80 mb-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-teal-500/40 bg-teal-950/20 text-teal-300">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-80 mb-1 gap-1">
             <span className="font-bold tracking-wider font-mono flex items-center gap-1.5">
-              <Gauge className="w-3.5 h-3.5 text-teal-400" />
-              PERFUSION INDEX
+              <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+              PERFUSION
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40">OPTICAL</span>
+            <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 hidden sm:inline">OPTICAL</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">{vitals.perfusionIndex}</span>
-            <span className="text-lg font-bold opacity-75">%</span>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-white">{vitals.perfusionIndex}</span>
+            <span className="text-sm sm:text-lg font-bold opacity-75">%</span>
           </div>
-          <div className="mt-3 text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-teal-500/20 pt-2">
+          <div className="mt-3 text-[10px] sm:text-[11px] font-mono opacity-80 flex items-center justify-between border-t border-teal-500/20 pt-2">
             <span>Signal Strength</span>
             <span>Optimal</span>
           </div>
@@ -295,8 +305,8 @@ export const BedsideMonitorCard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
         {/* Multi-Channel CRT Canvas (ECG + Pleth) */}
-        <div className="lg:col-span-3 bg-[#030712] p-4 rounded-2xl border border-slate-800 space-y-3 relative overflow-hidden shadow-inner">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div className="lg:col-span-3 bg-[#030712] p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-3 relative overflow-hidden shadow-inner">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono">
             <div className="flex items-center gap-3">
               <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -309,7 +319,7 @@ export const BedsideMonitorCard: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <span>Sweep: 25 mm/s</span>
+              <span>Sweep: {settings.sweepSpeedMmPerSec} mm/s</span>
               <span className="text-slate-600">|</span>
               <span className="text-amber-400">SIMULATED SENSOR HARNESS</span>
             </div>

@@ -11,7 +11,11 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#if __has_include("hardware_config.h")
 #include "hardware_config.h"
+#else
+#include "../include/hardware_config.h"
+#endif
 
 enum SupplySource {
     SOURCE_PRIMARY = 0,
@@ -73,10 +77,12 @@ public:
     void setFlowRate(float lpm);
     void setSimulationSpeed(float speed);
     void setSwitchingThreshold(float thresholdPct);
+    void setAutoMode();
     void manualSwitchSupply(SupplySource target);
     void refillCylinder(SupplySource target);
     void resetToDefault();
     void applyScenario(int scenarioId);
+    bool executeJsonCommand(const JsonObjectConst& cmdDoc);
 
     // Getters for Telemetry & LCD
     SupplySource getActiveSource() const { return m_activeSource; }

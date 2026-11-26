@@ -7,21 +7,32 @@
  */
 
 #include <Arduino.h>
+#if __has_include("hardware_config.h")
 #include "hardware_config.h"
 #include "SimulationEngine.h"
 #include "DisplayManager.h"
 #include "NetworkServer.h"
+#include "SerialBridge.h"
+#else
+#include "../include/hardware_config.h"
+#include "../include/SimulationEngine.h"
+#include "../include/DisplayManager.h"
+#include "../include/NetworkServer.h"
+#include "../include/SerialBridge.h"
+#endif
 
 // Core Subsystems
 SimulationEngine simEngine;
 DisplayManager   displayManager(simEngine);
 NetworkServer    networkServer(simEngine, displayManager);
+SerialBridge     serialBridge(simEngine, displayManager);
 
-// Button debounce for manual LCD cycling (using ESP32 BOOT button GPIO 0)
+// Button debounce & edge detection for manual LCD cycling (GPIO 0 BOOT button)
 static unsigned long lastButtonPressMs = 0;
+static int prevButtonState = HIGH;
 
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(USB_SERIAL_BAUD);
     delay(500);
 
     Serial.println();
@@ -47,10 +58,18 @@ void setup() {
     Serial.println(F("[CORE] I2C LCD Display initialized."));
 
     // 3. Initialize Networking (Wi-Fi, HTTP, WebSockets)
+    displayManager.showStatusBanner("  OXYSYNC  2.0  ", "Starting WiFi...");
     networkServer.begin();
     Serial.println(F("[CORE] Network Server initialized."));
 
-    Serial.println(F("[SYS] Ready for connections. Telemetry streaming at 2 Hz."));
+    // Immediately switch LCD to live Home page after Wi-Fi is up
+    displayManager.setPage(PAGE_HOME);
+
+    // 4. Initialize Real-Time USB Serial Data Bridge
+    serialBridge.begin();
+    Serial.println(F("[CORE] USB Serial Bridge initialized (4 Hz JSON telemetry)."));
+
+    Serial.println(F("[SYS] Ready for connections. Wi-Fi WS @ 2 Hz, USB Serial @ 4 Hz."));
 }
 
 void loop() {
@@ -65,15 +84,20 @@ void loop() {
     // 3. Process HTTP REST requests and broadcast WebSocket packets
     networkServer.update(now);
 
-    // 4. Handle optional physical button for manual page cycling
+    // 4. Stream real-time USB Serial JSON telemetry & handle incoming USB commands
+    serialBridge.update(now);
+
+    // 5. Handle optional physical button (falling edge + debounce) for manual page cycling
     #if defined(PIN_BUTTON_CYCLE) && (PIN_BUTTON_CYCLE >= 0)
-    if (digitalRead(PIN_BUTTON_CYCLE) == LOW) {
-        if (now - lastButtonPressMs > 350) { // 350ms debounce
+    int btnState = digitalRead(PIN_BUTTON_CYCLE);
+    if (prevButtonState == HIGH && btnState == LOW) {
+        if (now - lastButtonPressMs > 250) {
             lastButtonPressMs = now;
             displayManager.nextPage();
             Serial.printf("[UI] Button pressed -> Switched to Page %d\n", displayManager.getCurrentPage());
         }
     }
+    prevButtonState = btnState;
     #endif
 
     // Small yield for FreeRTOS background tasks (Wi-Fi stack, TCP/IP)

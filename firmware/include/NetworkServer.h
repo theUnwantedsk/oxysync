@@ -13,9 +13,15 @@
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
+#if __has_include("hardware_config.h")
 #include "hardware_config.h"
 #include "SimulationEngine.h"
 #include "DisplayManager.h"
+#else
+#include "../include/hardware_config.h"
+#include "../include/SimulationEngine.h"
+#include "../include/DisplayManager.h"
+#endif
 
 class NetworkServer {
 public:

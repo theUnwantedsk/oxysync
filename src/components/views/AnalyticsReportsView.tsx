@@ -315,7 +315,7 @@ export const AnalyticsReportsView: React.FC = () => {
 
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
                 <div className="font-bold text-teal-400 uppercase tracking-wide">2. Supply Status at Generation</div>
-                <div className="grid grid-cols-3 gap-3 font-mono text-slate-300">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-slate-300">
                   <div>Primary (A-1): {primaryCylinder.percentRemaining}% ({primaryCylinder.currentPressureBar} bar)</div>
                   <div>Backup (B-2): {secondaryCylinder.percentRemaining}% ({secondaryCylinder.currentPressureBar} bar)</div>
                   <div>Reserve Buffer: {reserveBuffer.percentRemaining}% ({reserveBuffer.currentGasLiters.toFixed(1)}L)</div>
@@ -324,7 +324,7 @@ export const AnalyticsReportsView: React.FC = () => {
 
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
                 <div className="font-bold text-indigo-400 uppercase tracking-wide">3. Simulated Patient Telemetry</div>
-                <div className="grid grid-cols-3 gap-3 font-mono text-slate-300">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-slate-300">
                   <div>SpO₂: {vitals.spo2}%</div>
                   <div>Pulse Rate: {vitals.pulseRate} BPM</div>
                   <div>Flow Delivery: {settings.flowRateLpm.toFixed(1)} L/min</div>

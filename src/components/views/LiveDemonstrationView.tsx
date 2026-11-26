@@ -16,6 +16,7 @@ import { EmergencyScenarioId } from '../../types/telemetry';
 export const LiveDemonstrationView: React.FC = () => {
   const {
     activeScenario,
+    lastScenarioUpdatedAt,
     triggerScenario,
     resetSimulation,
     primaryCylinder,
@@ -125,7 +126,7 @@ export const LiveDemonstrationView: React.FC = () => {
 
           <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
             <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>State Mutated at {new Date().toLocaleTimeString()}</span>
+            <span>State Mutated at {lastScenarioUpdatedAt}</span>
           </div>
         </div>
 

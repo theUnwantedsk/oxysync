@@ -83,7 +83,7 @@ export const SettingsView: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-5 gap-2 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2">
             {[0.5, 1, 2, 5, 10].map((spd) => (
               <button
                 key={spd}

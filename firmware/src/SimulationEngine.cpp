@@ -211,6 +211,18 @@ void SimulationEngine::evaluateSwitchingLogic() {
 void SimulationEngine::updateVitalsSimulation(float deltaSeconds) {
     // If oxygen is flowing nominally
     if (m_activeSource == SOURCE_PRIMARY || m_activeSource == SOURCE_BACKUP) {
+        if (m_activeScenarioId == 4) {
+            // Preserve Scenario 4 simulated hypoxemia state with gentle clinical jitter
+            float noise = ((rand() % 100) - 50) / 500.0f;
+            m_vitals.spo2 = 86.5f + noise;
+            if (m_vitals.spo2 > 87.9f) m_vitals.spo2 = 87.9f;
+            if (m_vitals.spo2 < 84.0f) m_vitals.spo2 = 84.0f;
+            m_vitals.pulseRate = 112 + (rand() % 5 - 2);
+            m_vitals.respirationRate = 24 + (rand() % 3 - 1);
+            m_vitals.perfusionIndex = 2.1f + noise;
+            return;
+        }
+
         // Natural physiological drift around 98% SpO2 and 72-76 BPM
         float noise = ((rand() % 100) - 50) / 500.0f;
         m_vitals.spo2 = 98.2f + noise;
@@ -305,8 +317,16 @@ void SimulationEngine::setSwitchingThreshold(float thresholdPct) {
     m_switchThresholdPct = thresholdPct;
 }
 
+void SimulationEngine::setAutoMode() {
+    m_mode = MODE_AUTO;
+    logEvent("Operating mode set to AUTO failover", SEV_INFO);
+    evaluateSwitchingLogic();
+    updateHardwareOutputs();
+}
+
 void SimulationEngine::manualSwitchSupply(SupplySource target) {
-    m_mode = (target == SOURCE_PRIMARY) ? MODE_MANUAL_PRIMARY : MODE_MANUAL_BACKUP;
+    m_mode = (target == SOURCE_PRIMARY) ? MODE_MANUAL_PRIMARY :
+             (target == SOURCE_BACKUP)  ? MODE_MANUAL_BACKUP : MODE_EMERGENCY_BUFFER;
     m_activeSource = target;
     m_primary.isActive = (target == SOURCE_PRIMARY);
     m_backup.isActive = (target == SOURCE_BACKUP);
@@ -315,8 +335,9 @@ void SimulationEngine::manualSwitchSupply(SupplySource target) {
     const char* targetName = (target == SOURCE_PRIMARY) ? "Primary" : 
                             (target == SOURCE_BACKUP) ? "Backup" : "Reserve";
     char buf[48];
-    snprintf(buf, sizeof(buf), "Manual switch to %s Cylinder", targetName);
+    snprintf(buf, sizeof(buf), "Manual switch to %s Supply", targetName);
     logEvent(buf, SEV_INFO);
+    updateHardwareOutputs();
 }
 
 void SimulationEngine::refillCylinder(SupplySource target) {
@@ -385,7 +406,14 @@ void SimulationEngine::applyScenario(int scenarioId) {
             m_primary.percentage = 12.0f; // Below threshold
             m_primary.remainingLiters = CYLINDER_MAX_CAPACITY_L * 0.12f;
             m_primary.pressureBar = m_primary.remainingLiters / CYLINDER_WATER_VOL_L;
+            m_primary.isConnected = true;
             m_primary.isActive = false;
+            if (m_backup.remainingLiters <= 0.0f) {
+                m_backup.percentage = 100.0f;
+                m_backup.remainingLiters = CYLINDER_MAX_CAPACITY_L;
+                m_backup.pressureBar = CYLINDER_MAX_PRESSURE_BAR;
+            }
+            m_backup.isConnected = true;
             m_activeSource = SOURCE_BACKUP;
             m_backup.isActive = true;
             m_reserve.isActive = false;
@@ -396,8 +424,18 @@ void SimulationEngine::applyScenario(int scenarioId) {
             break;
 
         case 4: // Low SpO2 Hypoxemia Alert
+            if (m_activeSource == SOURCE_NONE || m_activeSource == SOURCE_RESERVE) {
+                m_activeSource = SOURCE_PRIMARY;
+                m_primary.percentage = 100.0f;
+                m_primary.remainingLiters = CYLINDER_MAX_CAPACITY_L;
+                m_primary.pressureBar = CYLINDER_MAX_PRESSURE_BAR;
+                m_primary.isActive = true;
+                m_backup.isActive = false;
+                m_reserve.isActive = false;
+            }
             m_vitals.spo2 = 86.5f;
             m_vitals.pulseRate = 112;
+            m_vitals.respirationRate = 24;
             m_currentSeverity = SEV_CRITICAL;
             strncpy(m_activeAlertMessage, "CRITICAL: Patient Hypoxemia (SpO2 < 88%)", sizeof(m_activeAlertMessage) - 1);
             strncpy(m_scenarioExplanation, "Hypoxemia Event: SpO2 dropped below 88%; flow rate increase suggested.", sizeof(m_scenarioExplanation) - 1);
@@ -414,7 +452,9 @@ void SimulationEngine::applyScenario(int scenarioId) {
             m_backup.percentage = 14.0f;
             m_backup.remainingLiters = CYLINDER_MAX_CAPACITY_L * 0.14f;
             m_backup.pressureBar = m_backup.remainingLiters / CYLINDER_WATER_VOL_L;
+            m_backup.isConnected = true;
             m_backup.isActive = true;
+            m_reserve.isActive = false;
             m_currentSeverity = SEV_WARNING;
             strncpy(m_activeAlertMessage, "Backup Depleting: Reserve Buffer Primed", sizeof(m_activeAlertMessage) - 1);
             strncpy(m_scenarioExplanation, "Backup Low: Primary already empty; 5-min buffer will trigger next.", sizeof(m_scenarioExplanation) - 1);
@@ -432,7 +472,11 @@ void SimulationEngine::applyScenario(int scenarioId) {
             m_backup.pressureBar = 0.0f;
             m_backup.isActive = false;
             m_activeSource = SOURCE_RESERVE;
+            m_reserve.remainingLiters = RESERVE_BUFFER_CAPACITY_L;
+            m_reserve.percentage = 100.0f;
+            m_reserve.remainingSeconds = (m_flowRateLpm > 0.0f) ? (RESERVE_BUFFER_CAPACITY_L / m_flowRateLpm) * 60.0f : 300.0f;
             m_reserve.isActive = true;
+            m_reserve.isRecharging = false;
             m_currentSeverity = SEV_CRITICAL;
             strncpy(m_activeAlertMessage, "DUAL EXHAUSTION: Reserve Buffer Engaged!", sizeof(m_activeAlertMessage) - 1);
             strncpy(m_scenarioExplanation, "Dual Exhaustion: Primary & Backup zeroed; 5-min buffer bridge active.", sizeof(m_scenarioExplanation) - 1);
@@ -443,13 +487,18 @@ void SimulationEngine::applyScenario(int scenarioId) {
             m_mode = MODE_EMERGENCY_BUFFER;
             m_primary.percentage = 0.0f;
             m_primary.remainingLiters = 0.0f;
+            m_primary.pressureBar = 0.0f;
+            m_primary.isActive = false;
             m_backup.percentage = 0.0f;
             m_backup.remainingLiters = 0.0f;
+            m_backup.pressureBar = 0.0f;
+            m_backup.isActive = false;
             m_activeSource = SOURCE_RESERVE;
             m_reserve.isActive = true;
+            m_reserve.isRecharging = false;
             m_reserve.remainingLiters = 15.0f; // ~3 minutes remaining
             m_reserve.percentage = (15.0f / RESERVE_BUFFER_CAPACITY_L) * 100.0f;
-            m_reserve.remainingSeconds = (15.0f / m_flowRateLpm) * 60.0f;
+            m_reserve.remainingSeconds = (m_flowRateLpm > 0.0f) ? (15.0f / m_flowRateLpm) * 60.0f : 180.0f;
             m_currentSeverity = SEV_CRITICAL;
             strncpy(m_activeAlertMessage, "EMERGENCY: Reserve Buffer in Countdown", sizeof(m_activeAlertMessage) - 1);
             strncpy(m_scenarioExplanation, "Buffer Countdown: Demonstrating temporary 5-minute safety bridge.", sizeof(m_scenarioExplanation) - 1);
@@ -467,6 +516,10 @@ void SimulationEngine::applyScenario(int scenarioId) {
             m_backup.isActive = false;
             m_reserve.isActive = false;
             m_reserve.isRecharging = true; // Buffer recharging!
+            m_vitals.spo2 = 98.2f;
+            m_vitals.pulseRate = 74;
+            m_vitals.respirationRate = 16;
+            m_vitals.perfusionIndex = 4.5f;
             m_currentSeverity = SEV_NORMAL;
             strncpy(m_activeAlertMessage, "Supply Restored: Reserve Recharging", sizeof(m_activeAlertMessage) - 1);
             strncpy(m_scenarioExplanation, "Supply Restored: Fresh cylinder online; reserve buffer recharging.", sizeof(m_scenarioExplanation) - 1);
@@ -478,6 +531,78 @@ void SimulationEngine::applyScenario(int scenarioId) {
     }
 
     updateHardwareOutputs();
+}
+
+bool SimulationEngine::executeJsonCommand(const JsonObjectConst& cmdDoc) {
+    if (!cmdDoc.containsKey("action")) {
+        return false;
+    }
+
+    const char* action = cmdDoc["action"] | "";
+    if (strcmp(action, "scenario") == 0 && (cmdDoc.containsKey("id") || cmdDoc.containsKey("scenarioId"))) {
+        int id = cmdDoc.containsKey("id") ? cmdDoc["id"].as<int>() : cmdDoc["scenarioId"].as<int>();
+        if (id < 1 || id > 8) return false;
+        applyScenario(id);
+        return true;
+    }
+
+    if (strcmp(action, "switch") == 0 && cmdDoc.containsKey("target")) {
+        const char* target = cmdDoc["target"] | "";
+        if (strcmp(target, "PRIMARY") == 0) {
+            manualSwitchSupply(SOURCE_PRIMARY);
+            return true;
+        }
+        if (strcmp(target, "BACKUP") == 0) {
+            manualSwitchSupply(SOURCE_BACKUP);
+            return true;
+        }
+        if (strcmp(target, "RESERVE") == 0) {
+            manualSwitchSupply(SOURCE_RESERVE);
+            return true;
+        }
+        if (strcmp(target, "AUTO") == 0) {
+            setAutoMode();
+            return true;
+        }
+        return false;
+    }
+
+    if (strcmp(action, "autoMode") == 0) {
+        setAutoMode();
+        return true;
+    }
+
+    if (strcmp(action, "flow") == 0 && cmdDoc.containsKey("rate")) {
+        setFlowRate(cmdDoc["rate"].as<float>());
+        return true;
+    }
+
+    if (strcmp(action, "speed") == 0 && cmdDoc.containsKey("speed")) {
+        setSimulationSpeed(cmdDoc["speed"].as<float>());
+        return true;
+    }
+
+    if (strcmp(action, "threshold") == 0 && cmdDoc.containsKey("threshold")) {
+        setSwitchingThreshold(cmdDoc["threshold"].as<float>());
+        return true;
+    }
+
+    if (strcmp(action, "refill") == 0) {
+        const char* cyl = cmdDoc["cylinder"] | "ALL";
+        if (strcmp(cyl, "PRIMARY") == 0) refillCylinder(SOURCE_PRIMARY);
+        else if (strcmp(cyl, "BACKUP") == 0) refillCylinder(SOURCE_BACKUP);
+        else if (strcmp(cyl, "RESERVE") == 0) refillCylinder(SOURCE_RESERVE);
+        else refillCylinder(SOURCE_NONE);
+        updateHardwareOutputs();
+        return true;
+    }
+
+    if (strcmp(action, "reset") == 0) {
+        resetToDefault();
+        return true;
+    }
+
+    return false;
 }
 
 void SimulationEngine::logEvent(const char* msg, AlertSeverity sev) {

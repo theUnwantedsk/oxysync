@@ -1,9 +1,7 @@
 package com.oxysync.connected.data.model
 
 import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
 
-@JsonClass(generateAdapter = true)
 data class TelemetryPacket(
     @Json(name = "timestamp") val timestamp: Long = 0L,
     @Json(name = "operatingMode") val operatingMode: String = "AUTO",
@@ -22,7 +20,6 @@ data class TelemetryPacket(
     @Json(name = "vitals") val vitals: PatientVitalsData = PatientVitalsData()
 )
 
-@JsonClass(generateAdapter = true)
 data class CylinderData(
     @Json(name = "pressureBar") val pressureBar: Float = 150.0f,
     @Json(name = "remainingLiters") val remainingLiters: Float = 1500.0f,
@@ -31,7 +28,6 @@ data class CylinderData(
     @Json(name = "isActive") val isActive: Boolean = false
 )
 
-@JsonClass(generateAdapter = true)
 data class ReserveBufferData(
     @Json(name = "remainingLiters") val remainingLiters: Float = 25.0f,
     @Json(name = "percentage") val percentage: Float = 100.0f,
@@ -40,7 +36,6 @@ data class ReserveBufferData(
     @Json(name = "isRecharging") val isRecharging: Boolean = false
 )
 
-@JsonClass(generateAdapter = true)
 data class PatientVitalsData(
     @Json(name = "spo2") val spo2: Float = 98.2f,
     @Json(name = "pulseRate") val pulseRate: Int = 74,
@@ -48,7 +43,6 @@ data class PatientVitalsData(
     @Json(name = "perfusionIndex") val perfusionIndex: Float = 4.5f
 )
 
-@JsonClass(generateAdapter = true)
 data class PredictionData(
     @Json(name = "estRemainingMinutes") val estRemainingMinutes: Float = 0.0f,
     @Json(name = "estRemainingHours") val estRemainingHours: Float = 0.0f,
@@ -58,14 +52,12 @@ data class PredictionData(
     @Json(name = "cylinderWaterVolL") val cylinderWaterVolL: Float = 10.0f
 )
 
-@JsonClass(generateAdapter = true)
 data class EventLogItem(
     @Json(name = "timestampMs") val timestampMs: Long = 0L,
     @Json(name = "message") val message: String = "",
     @Json(name = "severity") val severity: String = "NORMAL"
 )
 
-@JsonClass(generateAdapter = true)
 data class AlertsData(
     @Json(name = "currentSeverity") val currentSeverity: String = "NORMAL",
     @Json(name = "activeMessage") val activeMessage: String = "",
@@ -73,22 +65,18 @@ data class AlertsData(
 )
 
 // Request DTOs
-@JsonClass(generateAdapter = true)
 data class SwitchRequest(
     @Json(name = "target") val target: String
 )
 
-@JsonClass(generateAdapter = true)
 data class FlowRequest(
     @Json(name = "rate") val rate: Float
 )
 
-@JsonClass(generateAdapter = true)
 data class RefillRequest(
     @Json(name = "cylinder") val cylinder: String = "ALL"
 )
 
-@JsonClass(generateAdapter = true)
 data class ScenarioRequest(
     @Json(name = "scenarioId") val scenarioId: Int
 )

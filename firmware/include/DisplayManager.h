@@ -12,8 +12,14 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+
+#if __has_include("hardware_config.h")
 #include "hardware_config.h"
 #include "SimulationEngine.h"
+#else
+#include "../include/hardware_config.h"
+#include "../include/SimulationEngine.h"
+#endif
 
 enum DisplayPage {
     PAGE_HOME       = 0,
@@ -27,6 +33,7 @@ enum DisplayPage {
 class DisplayManager {
 public:
     DisplayManager(SimulationEngine& simEngine);
+    ~DisplayManager();
     void begin();
     void update(unsigned long currentMillis);
     
@@ -40,8 +47,13 @@ public:
 
     // External status updates
     void setNetworkInfo(bool isApMode, const String& ipAddress, int clientCount);
+    void showStatusBanner(const char* line0, const char* line1);
+    bool isLcdReady() const { return m_lcdReady; }
+    uint8_t getDetectedAddress() const { return m_lcdAddr; }
 
 private:
+    uint8_t scanI2CAddress();
+    void printPaddedLine(uint8_t row, const char* text);
     void renderCurrentPage();
     void renderPageHome();
     void renderPageSupply();
@@ -50,9 +62,11 @@ private:
     void renderPageSystem();
     void registerCustomCharacters();
 
-    LiquidCrystal_I2C m_lcd;
+    LiquidCrystal_I2C* m_lcd;
     SimulationEngine& m_sim;
 
+    uint8_t m_lcdAddr;
+    bool m_lcdReady;
     DisplayPage m_currentPage;
     bool m_autoCycleEnabled;
     unsigned long m_lastPageSwitchMs;

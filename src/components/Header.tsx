@@ -56,7 +56,10 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
     masterClockMs,
     therapyElapsedFormatted,
     settings,
-    setSimulationSpeed
+    setSimulationSpeed,
+    esp32SyncEnabled,
+    esp32ConnectionState,
+    usbStatus
   } = useTelemetry();
 
   const activeAlertsCount = alerts.filter(a => !a.acknowledged).length;
@@ -100,11 +103,72 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
         );
       case 'none':
         return (
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-red-900 border border-red-400 text-white animate-ping font-mono">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-red-900 border border-red-400 text-white animate-pulse font-mono">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
             ALL SUPPLIES DEPLETED
           </span>
         );
     }
+  };
+
+  const getEsp32Pill = () => {
+    if (usbStatus === 'connected' || usbStatus === 'connecting') {
+      const isLive = usbStatus === 'connected';
+      return (
+        <button
+          onClick={() => onSelectTab('hardware')}
+          title="Live ESP32 USB Serial Real-Time Sync"
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-bold border transition-colors ${
+            isLive
+              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+              : 'bg-amber-950/70 border-amber-500/40 text-amber-300'
+          }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-ping'}`} />
+          <span>{isLive ? 'USB LIVE' : 'USB...'}</span>
+        </button>
+      );
+    }
+    if (!esp32SyncEnabled) {
+      return (
+        <button
+          onClick={() => onSelectTab('hardware')}
+          title="Connect ESP32 via USB Serial or Wi-Fi"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition-colors"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <span>SIM MODE</span>
+        </button>
+      );
+    }
+    const styles =
+      esp32ConnectionState === 'connected'
+        ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300'
+        : esp32ConnectionState === 'connecting'
+        ? 'bg-amber-950/70 border-amber-500/40 text-amber-300'
+        : 'bg-red-950/70 border-red-500/40 text-red-300';
+    const dot =
+      esp32ConnectionState === 'connected'
+        ? 'bg-emerald-400 animate-pulse'
+        : esp32ConnectionState === 'connecting'
+        ? 'bg-amber-400 animate-ping'
+        : 'bg-red-400';
+    const label =
+      esp32ConnectionState === 'connected'
+        ? 'ESP32 SYNCED'
+        : esp32ConnectionState === 'connecting'
+        ? 'ESP32 SYNC...'
+        : 'ESP32 OFFLINE';
+    return (
+      <button
+        onClick={() => onSelectTab('hardware')}
+        title="Manage ESP32 Live Hardware Bridge"
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-bold border transition-colors ${styles}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+        <span>{label}</span>
+      </button>
+    );
   };
 
   return (
@@ -121,17 +185,30 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onSelectTab }) => {
             <div className="flex items-center gap-2">
               <span className="text-lg font-black tracking-wider text-white">OXYSYNC</span>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">2.0</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono tracking-wide bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                SIMULATED DATA
-              </span>
+              {usbStatus === 'connected' ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  ESP32 USB LIVE
+                </span>
+              ) : esp32SyncEnabled && esp32ConnectionState === 'connected' ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono tracking-wide bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                  ESP32 WIFI LIVE
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono tracking-wide bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  SIMULATED DATA
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-slate-400 font-medium">Intelligent Oxygen. Continuous Care.</p>
           </div>
         </div>
 
         {/* Live Synchronized High-Precision Telemetry Clocks */}
-        <div className="flex items-center flex-wrap gap-2 text-xs">
+        <div className="flex items-center flex-wrap justify-center lg:justify-end gap-2 text-xs">
           
+          {/* ESP32 Tri-Device Sync Pill */}
+          {getEsp32Pill()}
+
           {/* Master 20 Hz Clock */}
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-300 font-mono">
             <Clock className="w-3.5 h-3.5 text-cyan-400" />

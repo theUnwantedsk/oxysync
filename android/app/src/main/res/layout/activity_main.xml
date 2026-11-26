@@ -474,6 +474,72 @@
                                 android:textColor="@color/teal_accent"
                                 app:strokeColor="@color/teal_accent" />
                         </LinearLayout>
+
+                        <!-- Flow Rate Quick Controls -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="6dp"
+                            android:text="FLOW TITRATION (L/MIN)"
+                            android:textColor="@color/text_muted"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btnFlow2"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="36dp"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="4dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="2.5L"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary" />
+
+                            <Button
+                                android:id="@+id/btnFlow5"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="36dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="2dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="5.0L"
+                                android:textSize="11sp"
+                                android:textColor="@color/cyan_accent" />
+
+                            <Button
+                                android:id="@+id/btnFlow8"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="36dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="2dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="8.0L"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary" />
+
+                            <Button
+                                android:id="@+id/btnFlow12"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="36dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="4dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="12L"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <!-- 5-Minute Reserve Buffer Card -->
@@ -621,7 +687,7 @@
                             android:layout_marginBottom="12dp" />
                     </LinearLayout>
 
-                    <!-- Quick Refill All Button -->
+                    <!-- Quick Refill All & Reset Buttons -->
                     <Button
                         android:id="@+id/btnRefillAll"
                         android:layout_width="match_parent"
@@ -629,6 +695,16 @@
                         android:text="Refill All Cylinders to 150 Bar"
                         android:textColor="@color/status_nominal"
                         style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btnResetSimulation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Reset Simulation to Nominal"
+                        android:textColor="@color/cyan_accent"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:strokeColor="@color/cyan_accent"
                         android:layout_marginBottom="16dp" />
                 </LinearLayout>
 

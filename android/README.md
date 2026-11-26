@@ -29,7 +29,7 @@ The **OXYSYNC 2.0 Native Android Application** is written in Kotlin for Android 
 1. Open **Android Studio**.
 2. Select **File > Open...** and navigate to:
    ```
-   C:\Users\Shubham\.gemini\antigravity\scratch\oxysync-connected\android
+   C:\Users\Shubham\.gemini\antigravity\scratch\oxysync-app\android
    ```
 3. Allow Gradle to sync dependencies.
 4. Connect an Android phone via USB (with USB Debugging enabled) or start an Android Emulator.

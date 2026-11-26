@@ -2,15 +2,32 @@ package com.oxysync.connected.data.repository
 
 import android.util.Log
 import com.oxysync.connected.data.api.Esp32ApiService
-import com.oxysync.connected.data.model.*
+import com.oxysync.connected.data.model.ConnectionState
+import com.oxysync.connected.data.model.FlowRequest
+import com.oxysync.connected.data.model.RefillRequest
+import com.oxysync.connected.data.model.ScenarioRequest
+import com.oxysync.connected.data.model.SwitchRequest
+import com.oxysync.connected.data.model.TelemetryPacket
 import com.oxysync.connected.data.websocket.Esp32WebSocketManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
@@ -25,17 +42,32 @@ class OxySyncRepository(
     private var apiService: Esp32ApiService = createApiService(currentHost)
     private var pollingJob: Job? = null
 
-    val connectionState: StateFlow<ConnectionState> = wsManager.connectionState
-    val telemetryFlow: SharedFlow<TelemetryPacket> = wsManager.telemetryFlow
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
+    private val _telemetryFlow = MutableSharedFlow<TelemetryPacket>(
+        replay = 1,
+        extraBufferCapacity = 16,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val telemetryFlow: SharedFlow<TelemetryPacket> = _telemetryFlow.asSharedFlow()
 
     init {
-        // Monitor connection: if WebSocket is not CONNECTED, run light HTTP polling fallback
         scope.launch {
-            wsManager.connectionState.collect { state ->
-                if (state != ConnectionState.CONNECTED) {
-                    startFallbackPolling()
-                } else {
+            wsManager.telemetryFlow.collect { packet ->
+                _telemetryFlow.emit(packet)
+            }
+        }
+
+        // Monitor WebSocket state: run HTTP fallback polling whenever WS is not connected
+        scope.launch {
+            wsManager.connectionState.collect { wsState ->
+                if (wsState == ConnectionState.CONNECTED) {
                     stopFallbackPolling()
+                    _connectionState.value = ConnectionState.CONNECTED
+                } else {
+                    _connectionState.value = wsState
+                    startFallbackPolling()
                 }
             }
         }
@@ -50,77 +82,71 @@ class OxySyncRepository(
     fun disconnect() {
         stopFallbackPolling()
         wsManager.disconnect()
+        _connectionState.value = ConnectionState.DISCONNECTED
     }
 
     fun getActiveHost(): String = currentHost
 
-    suspend fun switchSupply(target: String): Result<TelemetryPacket> = withContext(Dispatchers.IO) {
-        try {
-            wsManager.sendCommand("switch", mapOf("target" to target))
-            val res = apiService.switchSupply(SwitchRequest(target))
-            if (res.isSuccessful && res.body() != null) {
-                Result.success(res.body()!!)
-            } else {
-                Result.failure(Exception("HTTP error: ${res.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    suspend fun switchSupply(target: String): Result<TelemetryPacket> =
+        executeControlCommand(
+            wsAction = "switch",
+            wsParams = mapOf("target" to target)
+        ) { apiService.switchSupply(SwitchRequest(target)) }
 
-    suspend fun setFlowRate(rate: Float): Result<TelemetryPacket> = withContext(Dispatchers.IO) {
-        try {
-            wsManager.sendCommand("flow", mapOf("rate" to rate))
-            val res = apiService.setFlowRate(FlowRequest(rate))
-            if (res.isSuccessful && res.body() != null) {
-                Result.success(res.body()!!)
-            } else {
-                Result.failure(Exception("HTTP error: ${res.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    suspend fun setFlowRate(rate: Float): Result<TelemetryPacket> =
+        executeControlCommand(
+            wsAction = "flow",
+            wsParams = mapOf("rate" to rate)
+        ) { apiService.setFlowRate(FlowRequest(rate)) }
 
-    suspend fun refillCylinder(cylinder: String = "ALL"): Result<TelemetryPacket> = withContext(Dispatchers.IO) {
-        try {
-            wsManager.sendCommand("refill", mapOf("cylinder" to cylinder))
-            val res = apiService.refillCylinder(RefillRequest(cylinder))
-            if (res.isSuccessful && res.body() != null) {
-                Result.success(res.body()!!)
-            } else {
-                Result.failure(Exception("HTTP error: ${res.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    suspend fun refillCylinder(cylinder: String = "ALL"): Result<TelemetryPacket> =
+        executeControlCommand(
+            wsAction = "refill",
+            wsParams = mapOf("cylinder" to cylinder)
+        ) { apiService.refillCylinder(RefillRequest(cylinder)) }
 
-    suspend fun applyScenario(scenarioId: Int): Result<TelemetryPacket> = withContext(Dispatchers.IO) {
-        try {
-            wsManager.sendCommand("scenario", mapOf("id" to scenarioId))
-            val res = apiService.applyScenario(ScenarioRequest(scenarioId))
-            if (res.isSuccessful && res.body() != null) {
-                Result.success(res.body()!!)
-            } else {
-                Result.failure(Exception("HTTP error: ${res.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    suspend fun applyScenario(scenarioId: Int): Result<TelemetryPacket> =
+        executeControlCommand(
+            wsAction = "scenario",
+            wsParams = mapOf("id" to scenarioId)
+        ) { apiService.applyScenario(ScenarioRequest(scenarioId)) }
 
-    suspend fun resetSimulation(): Result<TelemetryPacket> = withContext(Dispatchers.IO) {
+    suspend fun resetSimulation(): Result<TelemetryPacket> =
+        executeControlCommand(
+            wsAction = "reset"
+        ) { apiService.resetSimulation() }
+
+    /**
+     * Executes control actions over HTTP REST as the single authoritative transport
+     * (emitting the returned packet immediately) and only falls back to WebSocket
+     * when HTTP fails, preventing duplicate command execution on the ESP32.
+     */
+    private suspend fun executeControlCommand(
+        wsAction: String,
+        wsParams: Map<String, Any> = emptyMap(),
+        httpCall: suspend () -> Response<TelemetryPacket>
+    ): Result<TelemetryPacket> = withContext(Dispatchers.IO) {
         try {
-            wsManager.sendCommand("reset")
-            val res = apiService.resetSimulation()
-            if (res.isSuccessful && res.body() != null) {
-                Result.success(res.body()!!)
+            val res = httpCall()
+            val body = res.body()
+            if (res.isSuccessful && body != null) {
+                _telemetryFlow.tryEmit(body)
+                _connectionState.value = ConnectionState.CONNECTED
+                Result.success(body)
             } else {
-                Result.failure(Exception("HTTP error: ${res.code()}"))
+                if (wsManager.sendCommand(wsAction, wsParams)) {
+                    Result.success(_telemetryFlow.replayCache.lastOrNull() ?: TelemetryPacket())
+                } else {
+                    Result.failure(Exception("HTTP error: ${res.code()}"))
+                }
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Log.w(tag, "HTTP control failed for '$wsAction', attempting WS fallback: ${e.message}")
+            if (wsManager.sendCommand(wsAction, wsParams)) {
+                Result.success(_telemetryFlow.replayCache.lastOrNull() ?: TelemetryPacket())
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
@@ -130,10 +156,18 @@ class OxySyncRepository(
             while (isActive) {
                 try {
                     val res = apiService.getStatus()
-                    if (res.isSuccessful && res.body() != null) {
-                        // Handled by repository
+                    val body = res.body()
+                    if (res.isSuccessful && body != null) {
+                        _telemetryFlow.emit(body)
+                        if (wsManager.connectionState.value != ConnectionState.CONNECTED) {
+                            _connectionState.value = ConnectionState.CONNECTED
+                        }
                     }
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                    if (wsManager.connectionState.value != ConnectionState.CONNECTED) {
+                        _connectionState.value = wsManager.connectionState.value
+                    }
+                }
                 delay(2000)
             }
         }

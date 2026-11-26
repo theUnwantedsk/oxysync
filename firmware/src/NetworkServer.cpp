@@ -114,13 +114,12 @@ void NetworkServer::begin() {
     setupRestRoutes();
     setupWebSocket();
 
-    m_httpServer.begin();
-    m_wsServer.begin();
-
-    // Bind websocket callback
     m_wsServer.onEvent([this](uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
         this->handleWebSocketEvent(num, type, payload, length);
     });
+
+    m_httpServer.begin();
+    m_wsServer.begin();
 
     m_display.setNetworkInfo(m_isApMode, m_ipAddress, m_connectedClients);
 }
@@ -129,24 +128,29 @@ void NetworkServer::setupWiFi() {
     WiFi.disconnect(true);
     delay(100);
 
-    Serial.print(F("[WiFi] Attempting connection to SSID: "));
-    Serial.println(WIFI_STA_SSID);
-
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASS);
-
-    unsigned long startMs = millis();
     bool connected = false;
+    bool hasStaCredentials = (strcmp(WIFI_STA_SSID, "Your_WiFi_SSID") != 0 && strlen(WIFI_STA_SSID) > 0);
 
-    while (millis() - startMs < WIFI_STA_TIMEOUT_MS) {
-        if (WiFi.status() == WL_CONNECTED) {
-            connected = true;
-            break;
+    if (hasStaCredentials) {
+        Serial.print(F("[WiFi] Attempting connection to SSID: "));
+        Serial.println(WIFI_STA_SSID);
+
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASS);
+
+        unsigned long startMs = millis();
+        while (millis() - startMs < WIFI_STA_TIMEOUT_MS) {
+            if (WiFi.status() == WL_CONNECTED) {
+                connected = true;
+                break;
+            }
+            delay(250);
+            Serial.print('.');
         }
-        delay(250);
-        Serial.print('.');
+        Serial.println();
+    } else {
+        Serial.println(F("[WiFi] Placeholder STA SSID detected; launching SoftAP immediately."));
     }
-    Serial.println();
 
     if (connected) {
         m_isApMode = false;
@@ -232,7 +236,7 @@ void NetworkServer::update(unsigned long currentMillis) {
 void NetworkServer::broadcastTelemetry() {
     if (m_wsServer.connectedClients() <= 0) return;
 
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<1536> doc;
     JsonObject root = doc.to<JsonObject>();
     m_sim.serializeTelemetry(root);
 
@@ -250,7 +254,7 @@ void NetworkServer::handleWebSocketEvent(uint8_t num, WStype_t type, uint8_t * p
             IPAddress ip = m_wsServer.remoteIP(num);
             Serial.printf("[WS] Client #%u connected from %s\n", num, ip.toString().c_str());
             // Immediately send current status on connect
-            StaticJsonDocument<1024> doc;
+            StaticJsonDocument<1536> doc;
             JsonObject root = doc.to<JsonObject>();
             m_sim.serializeTelemetry(root);
             String output;
@@ -262,24 +266,8 @@ void NetworkServer::handleWebSocketEvent(uint8_t num, WStype_t type, uint8_t * p
             // Parse incoming JSON commands from Android or web clients
             StaticJsonDocument<256> cmdDoc;
             DeserializationError err = deserializeJson(cmdDoc, payload, length);
-            if (!err) {
-                if (cmdDoc.containsKey("action")) {
-                    const char* action = cmdDoc["action"];
-                    if (strcmp(action, "scenario") == 0 && cmdDoc.containsKey("id")) {
-                        m_sim.applyScenario(cmdDoc["id"]);
-                    } else if (strcmp(action, "switch") == 0 && cmdDoc.containsKey("target")) {
-                        const char* target = cmdDoc["target"];
-                        if (strcmp(target, "PRIMARY") == 0) m_sim.manualSwitchSupply(SOURCE_PRIMARY);
-                        else if (strcmp(target, "BACKUP") == 0) m_sim.manualSwitchSupply(SOURCE_BACKUP);
-                    } else if (strcmp(action, "flow") == 0 && cmdDoc.containsKey("rate")) {
-                        m_sim.setFlowRate(cmdDoc["rate"]);
-                    } else if (strcmp(action, "refill") == 0) {
-                        m_sim.refillCylinder(SOURCE_NONE); // Refill all
-                    } else if (strcmp(action, "reset") == 0) {
-                        m_sim.resetToDefault();
-                    }
-                    broadcastTelemetry();
-                }
+            if (!err && m_sim.executeJsonCommand(cmdDoc.as<JsonObjectConst>())) {
+                broadcastTelemetry();
             }
             break;
         }
@@ -293,7 +281,7 @@ void NetworkServer::handleRoot() {
 }
 
 void NetworkServer::handleApiStatus() {
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<1536> doc;
     JsonObject root = doc.to<JsonObject>();
     m_sim.serializeTelemetry(root);
     sendJsonResponse(200, doc);
@@ -314,7 +302,7 @@ void NetworkServer::handleApiPrediction() {
 }
 
 void NetworkServer::handleApiAlerts() {
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<1536> doc;
     JsonObject root = doc.to<JsonObject>();
     m_sim.serializeAlerts(root);
     sendJsonResponse(200, doc);
@@ -322,14 +310,22 @@ void NetworkServer::handleApiAlerts() {
 
 void NetworkServer::handleApiControlSwitch() {
     if (!m_httpServer.hasArg("plain")) {
-        m_httpServer.send(400, "text/plain", "Missing body");
+        setCorsHeaders();
+        m_httpServer.send(400, "application/json", "{\"error\":\"Missing body\"}");
         return;
     }
     StaticJsonDocument<128> doc;
-    deserializeJson(doc, m_httpServer.arg("plain"));
+    DeserializationError err = deserializeJson(doc, m_httpServer.arg("plain"));
+    if (err) {
+        setCorsHeaders();
+        m_httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+        return;
+    }
     const char* target = doc["target"] | "PRIMARY";
     if (strcmp(target, "BACKUP") == 0) {
         m_sim.manualSwitchSupply(SOURCE_BACKUP);
+    } else if (strcmp(target, "RESERVE") == 0) {
+        m_sim.manualSwitchSupply(SOURCE_RESERVE);
     } else {
         m_sim.manualSwitchSupply(SOURCE_PRIMARY);
     }
@@ -338,11 +334,17 @@ void NetworkServer::handleApiControlSwitch() {
 
 void NetworkServer::handleApiControlFlow() {
     if (!m_httpServer.hasArg("plain")) {
-        m_httpServer.send(400, "text/plain", "Missing body");
+        setCorsHeaders();
+        m_httpServer.send(400, "application/json", "{\"error\":\"Missing body\"}");
         return;
     }
     StaticJsonDocument<128> doc;
-    deserializeJson(doc, m_httpServer.arg("plain"));
+    DeserializationError err = deserializeJson(doc, m_httpServer.arg("plain"));
+    if (err) {
+        setCorsHeaders();
+        m_httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+        return;
+    }
     float rate = doc["rate"] | 5.0f;
     m_sim.setFlowRate(rate);
     handleApiStatus();
@@ -351,7 +353,12 @@ void NetworkServer::handleApiControlFlow() {
 void NetworkServer::handleApiControlRefill() {
     if (m_httpServer.hasArg("plain")) {
         StaticJsonDocument<128> doc;
-        deserializeJson(doc, m_httpServer.arg("plain"));
+        DeserializationError err = deserializeJson(doc, m_httpServer.arg("plain"));
+        if (err) {
+            setCorsHeaders();
+            m_httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+            return;
+        }
         const char* cyl = doc["cylinder"] | "ALL";
         if (strcmp(cyl, "PRIMARY") == 0) m_sim.refillCylinder(SOURCE_PRIMARY);
         else if (strcmp(cyl, "BACKUP") == 0) m_sim.refillCylinder(SOURCE_BACKUP);
@@ -364,11 +371,17 @@ void NetworkServer::handleApiControlRefill() {
 
 void NetworkServer::handleApiControlScenario() {
     if (!m_httpServer.hasArg("plain")) {
-        m_httpServer.send(400, "text/plain", "Missing body");
+        setCorsHeaders();
+        m_httpServer.send(400, "application/json", "{\"error\":\"Missing body\"}");
         return;
     }
     StaticJsonDocument<128> doc;
-    deserializeJson(doc, m_httpServer.arg("plain"));
+    DeserializationError err = deserializeJson(doc, m_httpServer.arg("plain"));
+    if (err) {
+        setCorsHeaders();
+        m_httpServer.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+        return;
+    }
     int scenarioId = doc["scenarioId"] | 1;
     m_sim.applyScenario(scenarioId);
     handleApiStatus();

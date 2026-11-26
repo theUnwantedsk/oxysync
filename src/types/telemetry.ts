@@ -180,3 +180,58 @@ export interface TelemetryPacket {
   crc16: string;
   rawHex: string;
 }
+
+export type UsbConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+export interface Esp32CylinderPayload {
+  pressureBar: number;
+  remainingLiters: number;
+  percentage: number;
+  isConnected: boolean;
+  isActive: boolean;
+}
+
+export interface Esp32ReservePayload {
+  remainingLiters: number;
+  percentage: number;
+  remainingSeconds: number;
+  isActive: boolean;
+  isRecharging: boolean;
+}
+
+export interface Esp32VitalsPayload {
+  spo2: number;
+  pulseRate: number;
+  respirationRate: number;
+  perfusionIndex: number;
+}
+
+export interface Esp32TelemetryPayload {
+  type?: string;
+  transport?: string;
+  protocol?: string;
+  lcdReady?: boolean;
+  lcdAddress?: string;
+  timestamp: number;
+  operatingMode: string;
+  activeSource: 'PRIMARY' | 'BACKUP' | 'RESERVE' | 'NONE';
+  flowRateLpm: number;
+  simSpeed: number;
+  switchThresholdPct: number;
+  estRemainingMinutes: number;
+  alertSeverity: 'NORMAL' | 'INFO' | 'WARNING' | 'CRITICAL';
+  activeAlertMessage: string;
+  activeScenarioId: number;
+  scenarioExplanation: string;
+  primary: Esp32CylinderPayload;
+  backup: Esp32CylinderPayload;
+  reserve: Esp32ReservePayload;
+  vitals: Esp32VitalsPayload;
+}
+
+export interface UsbSerialLogEntry {
+  id: number;
+  timestamp: string;
+  direction: 'rx' | 'tx' | 'sys';
+  raw: string;
+}

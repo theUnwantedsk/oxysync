@@ -3,7 +3,6 @@ package com.oxysync.connected.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -23,7 +22,8 @@ import com.oxysync.connected.data.model.ConnectionState
 import com.oxysync.connected.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,7 +33,11 @@ class MainActivity : AppCompatActivity() {
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (!isGranted) {
-                Toast.makeText(this, "Notification permission needed for critical failover alerts", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Notification permission needed for critical failover alerts",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -50,7 +54,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkNotificationPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
@@ -65,50 +73,48 @@ class MainActivity : AppCompatActivity() {
                     2 -> showSection(binding.layoutAnalyticsView)
                 }
             }
+
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
     }
 
     private fun showSection(target: View) {
-        binding.layoutDashboardView.visibility = if (target == binding.layoutDashboardView) View.VISIBLE else View.GONE
-        binding.layoutLabView.visibility = if (target == binding.layoutLabView) View.VISIBLE else View.GONE
-        binding.layoutAnalyticsView.visibility = if (target == binding.layoutAnalyticsView) View.VISIBLE else View.GONE
+        binding.layoutDashboardView.visibility =
+            if (target == binding.layoutDashboardView) View.VISIBLE else View.GONE
+        binding.layoutLabView.visibility =
+            if (target == binding.layoutLabView) View.VISIBLE else View.GONE
+        binding.layoutAnalyticsView.visibility =
+            if (target == binding.layoutAnalyticsView) View.VISIBLE else View.GONE
     }
 
     private fun setupListeners() {
-        // Connection settings dialog
-        binding.btnConnectionSettings.setOnClickListener {
-            showConnectionDialog()
+        binding.btnConnectionSettings.setOnClickListener { showConnectionDialog() }
+        binding.btnSwitchPrimary.setOnClickListener { viewModel.switchSupply("PRIMARY") }
+        binding.btnSwitchBackup.setOnClickListener { viewModel.switchSupply("BACKUP") }
+
+        binding.btnFlow2.setOnClickListener { viewModel.setFlowRate(2.5f) }
+        binding.btnFlow5.setOnClickListener { viewModel.setFlowRate(5.0f) }
+        binding.btnFlow8.setOnClickListener { viewModel.setFlowRate(8.0f) }
+        binding.btnFlow12.setOnClickListener { viewModel.setFlowRate(12.0f) }
+
+        val scenarioButtons = listOf(
+            binding.btnScenario1 to 1,
+            binding.btnScenario2 to 2,
+            binding.btnScenario3 to 3,
+            binding.btnScenario4 to 4,
+            binding.btnScenario5 to 5,
+            binding.btnScenario6 to 6,
+            binding.btnScenario7 to 7,
+            binding.btnScenario8 to 8
+        )
+        scenarioButtons.forEach { (button, id) ->
+            button.setOnClickListener { viewModel.applyScenario(id) }
         }
 
-        // Manual Solenoid Switching
-        binding.btnSwitchPrimary.setOnClickListener {
-            viewModel.switchSupply("PRIMARY")
-        }
-        binding.btnSwitchBackup.setOnClickListener {
-            viewModel.switchSupply("BACKUP")
-        }
-
-        // Simulation Lab Scenario Triggers
-        binding.btnScenario1.setOnClickListener { viewModel.applyScenario(1) }
-        binding.btnScenario2.setOnClickListener { viewModel.applyScenario(2) }
-        binding.btnScenario3.setOnClickListener { viewModel.applyScenario(3) }
-        binding.btnScenario4.setOnClickListener { viewModel.applyScenario(4) }
-        binding.btnScenario5.setOnClickListener { viewModel.applyScenario(5) }
-        binding.btnScenario6.setOnClickListener { viewModel.applyScenario(6) }
-        binding.btnScenario7.setOnClickListener { viewModel.applyScenario(7) }
-        binding.btnScenario8.setOnClickListener { viewModel.applyScenario(8) }
-
-        // Refill All
-        binding.btnRefillAll.setOnClickListener {
-            viewModel.refillCylinders("ALL")
-        }
-
-        // CSV Export
-        binding.btnExportCsv.setOnClickListener {
-            exportCsvReport()
-        }
+        binding.btnRefillAll.setOnClickListener { viewModel.refillCylinders("ALL") }
+        binding.btnResetSimulation.setOnClickListener { viewModel.resetSimulation() }
+        binding.btnExportCsv.setOnClickListener { exportCsvReport() }
     }
 
     private fun observeViewModel() {
@@ -174,11 +180,11 @@ class MainActivity : AppCompatActivity() {
         binding.plethWaveView.updateVitals(tele.vitals.pulseRate, tele.vitals.spo2, isConnected)
 
         // 5. Dual Cylinder Progress
-        binding.pbPrimarySupply.progress = tele.primary.percentage.toInt()
+        binding.pbPrimarySupply.progress = tele.primary.percentage.toInt().coerceIn(0, 100)
         binding.tvPrimaryPercent.text = String.format(Locale.US, "%.0f%%", tele.primary.percentage)
         binding.tvPrimaryBar.text = String.format(Locale.US, "%.0f Bar", tele.primary.pressureBar)
 
-        binding.pbBackupSupply.progress = tele.backup.percentage.toInt()
+        binding.pbBackupSupply.progress = tele.backup.percentage.toInt().coerceIn(0, 100)
         binding.tvBackupPercent.text = String.format(Locale.US, "%.0f%%", tele.backup.percentage)
         binding.tvBackupBar.text = String.format(Locale.US, "%.0f Bar", tele.backup.pressureBar)
 
@@ -203,11 +209,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 7. 5-Minute Reserve Buffer Card
-        binding.pbReserveBuffer.progress = tele.reserve.percentage.toInt()
-        binding.tvReserveBufferState.text = if (tele.reserve.isActive) "ACTIVE IN USE" else if (tele.reserve.isRecharging) "RECHARGING" else "STANDBY (100%)"
+        binding.pbReserveBuffer.progress = tele.reserve.percentage.toInt().coerceIn(0, 100)
+        binding.tvReserveBufferState.text = when {
+            tele.reserve.isActive -> "ACTIVE IN USE"
+            tele.reserve.isRecharging -> "RECHARGING"
+            else -> "STANDBY (${tele.reserve.percentage.toInt()}%)"
+        }
         binding.tvReserveCountdown.text = String.format(
             Locale.US,
-            "Buffer Available: %.1fs (%.1f L) &bull; Safety bridge",
+            "Buffer Available: %.1fs (%.1f L) \u2022 Safety bridge",
             tele.reserve.remainingSeconds,
             tele.reserve.remainingLiters
         )
@@ -223,20 +233,20 @@ class MainActivity : AppCompatActivity() {
             tele.estRemainingMinutes
         )
 
-        // Event Log output
         val logSb = StringBuilder()
         state.eventHistory.forEach { ev ->
             val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(ev.timestampMs))
             logSb.append("[$time] [${ev.severity}] ${ev.message}\n")
         }
         if (state.eventHistory.isEmpty()) {
-            logSb.append("No events recorded yet. Connected to ${state.hostAddress}")
+            logSb.append("No events recorded yet. Target host: ${state.hostAddress}")
         }
         binding.tvEventLogOutput.text = logSb.toString()
 
-        // Status feedback toast if present
-        state.statusFeedback?.let {
-            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+        // One-shot feedback toast (consumed immediately so 2 Hz telemetry never repeats it)
+        state.statusFeedback?.let { msg ->
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            viewModel.consumeStatusFeedback()
         }
     }
 
@@ -244,7 +254,7 @@ class MainActivity : AppCompatActivity() {
         val currentIp = viewModel.uiState.value.hostAddress
         val input = EditText(this).apply {
             setText(currentIp)
-            setHint("192.168.4.1")
+            hint = "192.168.4.1"
         }
 
         AlertDialog.Builder(this)

@@ -156,12 +156,12 @@ export const TimeScrubberView: React.FC = () => {
             onChange={(e) => setScrubMinutes(parseInt(e.target.value, 10))}
             className="w-full accent-cyan-400 cursor-pointer h-3 bg-slate-800 rounded-lg"
           />
-          <div className="flex justify-between text-[11px] font-mono text-slate-500">
+          <div className="flex justify-between text-[10px] sm:text-[11px] font-mono text-slate-500">
             <span>Now (0m)</span>
-            <span>+1 Hour</span>
-            <span>+2 Hours (Auto-Switch Zone)</span>
-            <span>+4 Hours</span>
-            <span>+6 Hours (Depletion Zone)</span>
+            <span className="hidden sm:inline">+1 Hour</span>
+            <span>+2 Hours</span>
+            <span className="hidden sm:inline">+4 Hours</span>
+            <span>+6 Hours</span>
           </div>
         </div>
 
@@ -222,7 +222,7 @@ export const TimeScrubberView: React.FC = () => {
             Immediately advances the live physics simulation state forward in time to demonstrate depletion milestones.
           </p>
 
-          <div className="grid grid-cols-4 gap-2 pt-1 font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono">
             {[15, 30, 60, 120].map((mins) => (
               <button
                 key={mins}
@@ -250,7 +250,7 @@ export const TimeScrubberView: React.FC = () => {
             Select clock multiplier to accelerate Boyle's physics rate in real time without clicking jumps.
           </p>
 
-          <div className="grid grid-cols-6 gap-1.5 pt-1 font-mono">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-1 font-mono">
             {[0.5, 1, 5, 10, 30, 60].map((spd) => (
               <button
                 key={spd}

@@ -1,7 +1,12 @@
 package com.oxysync.connected.ui.view
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 import kotlin.math.PI
@@ -13,8 +18,11 @@ class PlethysmographWaveView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private val nominalColor = Color.parseColor("#00E5FF")
+    private val hypoxemicColor = Color.parseColor("#EF4444")
+
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#00E5FF")
+        color = nominalColor
         strokeWidth = 4.5f
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
@@ -34,11 +42,14 @@ class PlethysmographWaveView @JvmOverloads constructor(
     private val wavePath = Path()
     private val fillPath = Path()
 
-    // Real-time animation phase
     private var phase = 0f
     private var pulseRateBpm = 74
     private var spo2Pct = 98.2f
     private var isConnected = true
+
+    private var cachedWidth = 0f
+    private var cachedHeight = 0f
+    private var cachedHypoxemic = false
 
     fun updateVitals(bpm: Int, spo2: Float, connected: Boolean) {
         this.pulseRateBpm = if (bpm in 40..180) bpm else 74
@@ -52,21 +63,34 @@ class PlethysmographWaveView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
-        if (w <= 0 || h <= 0) return
+        if (w <= 0f || h <= 0f) return
 
-        // 1. Draw subtle medical grid lines
         drawGrid(canvas, w, h)
 
+        val isHypoxemic = spo2Pct < 90f
+        linePaint.color = if (isHypoxemic) hypoxemicColor else nominalColor
+
         if (!isConnected) {
-            // Flatline if disconnected
             canvas.drawLine(0f, h / 2f, w, h / 2f, linePaint)
             return
         }
 
-        // 2. Synthesize physiological PPG plethysmogram curve
-        // T = 60 / BPM seconds per cardiac cycle
         val midY = h * 0.55f
-        val maxAmp = h * 0.35f * (spo2Pct / 100f)
+        val clampedSpo2 = spo2Pct.coerceIn(50f, 100f)
+        val maxAmp = h * 0.35f * (clampedSpo2 / 100f)
+
+        if (w != cachedWidth || h != cachedHeight || isHypoxemic != cachedHypoxemic || fillPaint.shader == null) {
+            cachedWidth = w
+            cachedHeight = h
+            cachedHypoxemic = isHypoxemic
+            val fillStartColor = Color.parseColor(if (isHypoxemic) "#33EF4444" else "#3300E5FF")
+            fillPaint.shader = LinearGradient(
+                0f, midY - maxAmp, 0f, h,
+                fillStartColor,
+                Color.TRANSPARENT,
+                Shader.TileMode.CLAMP
+            )
+        }
 
         wavePath.reset()
         fillPath.reset()
@@ -75,15 +99,12 @@ class PlethysmographWaveView @JvmOverloads constructor(
         val stepPx = 4f
         var x = 0f
         var first = true
-
-        // Phase advance speed tied to BPM: (BPM / 60) cycles per sec
+        val twoPi = 2f * PI.toFloat()
         val cycleFrequency = (pulseRateBpm / 60f) * 0.05f
 
         while (x <= w) {
-            val t = (x * 0.015f - phase) * 2f * PI.toFloat()
-            val normalizedT = (t % (2f * PI.toFloat()) + 2f * PI.toFloat()) % (2f * PI.toFloat())
-
-            // Plethysmogram formula: Primary systolic peak + secondary dicrotic notch
+            val t = (x * 0.015f - phase) * twoPi
+            val normalizedT = (t % twoPi + twoPi) % twoPi
             val yOffset = calculatePpgSample(normalizedT) * maxAmp
             val y = midY - yOffset
 
@@ -101,35 +122,18 @@ class PlethysmographWaveView @JvmOverloads constructor(
         fillPath.lineTo(w, h)
         fillPath.close()
 
-        // 3. Draw gradient fill under wave
-        val gradient = LinearGradient(
-            0f, midY - maxAmp, 0f, h,
-            Color.parseColor("#3300E5FF"),
-            Color.TRANSPARENT,
-            Shader.TileMode.CLAMP
-        )
-        fillPaint.shader = gradient
         canvas.drawPath(fillPath, fillPaint)
-
-        // 4. Draw wave trace
         canvas.drawPath(wavePath, linePaint)
 
-        // Advance animation phase smoothly
         phase += cycleFrequency * 0.6f
         postInvalidateOnAnimation()
     }
 
     private fun calculatePpgSample(theta: Float): Float {
-        // Normalizes 0..2*PI cardiac cycle:
-        // Systolic upstroke & peak (0..0.8 rad)
-        // Dicrotic notch (1.2..1.8 rad)
-        // Diastolic runoff (1.8..2*PI rad)
         val s1 = sin(theta)
         val s2 = 0.35f * sin(2f * theta - 0.5f)
         val s3 = 0.15f * sin(3f * theta - 1.0f)
-        var sample = (s1 + s2 + s3)
-        if (sample < -0.2f) sample = -0.2f
-        return sample
+        return (s1 + s2 + s3).coerceAtLeast(-0.2f)
     }
 
     private fun drawGrid(canvas: Canvas, w: Float, h: Float) {

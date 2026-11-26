@@ -61,6 +61,12 @@
 #define TELEMETRY_BROADCAST_MS    500
 
 // ============================================================================
+// 3B. USB SERIAL REAL-TIME DATA BRIDGE
+// ============================================================================
+#define USB_SERIAL_BAUD           115200
+#define USB_TELEMETRY_INTERVAL_MS 250   // 4 Hz real-time JSON lines over USB
+
+// ============================================================================
 // 4. DETERMINISTIC OXYGEN SUPPLY SIMULATION PARAMETERS
 // ============================================================================
 // Standard medical E-Cylinder parameters (or 10L water-capacity clinical cylinder)
