@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cylinder, ShieldAlert, ArrowRightLeft, RefreshCw, Unplug, Plug, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Cylinder, ShieldAlert, ArrowRightLeft, RefreshCw, Unplug, Plug, Clock } from 'lucide-react';
 import { useTelemetry } from '../../context/TelemetryContext';
 
 export const OxygenSupplyPanel: React.FC = () => {
@@ -14,300 +14,346 @@ export const OxygenSupplyPanel: React.FC = () => {
     settings
   } = useTelemetry();
 
-  const getCylinderColor = (percent: number, isActive: boolean, connected: boolean) => {
-    if (!connected) return { border: 'border-slate-800', bar: 'bg-slate-700', text: 'text-slate-500' };
-    if (isActive) {
-      if (percent > 20) return { border: 'border-cyan-500/60 shadow-lg shadow-cyan-500/10', bar: 'bg-cyan-400', text: 'text-cyan-400' };
-      if (percent > 10) return { border: 'border-amber-500/60 shadow-lg shadow-amber-500/10', bar: 'bg-amber-400', text: 'text-amber-400' };
-      return { border: 'border-red-500/70 shadow-lg shadow-red-500/20 animate-pulse', bar: 'bg-red-500', text: 'text-red-400' };
+  const getCylinderMeta = (percent: number, isActive: boolean, connected: boolean) => {
+    if (!connected) {
+      return {
+        border: 'border-[var(--border-subtle)] opacity-75',
+        bar: 'bg-slate-400',
+        pill: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+        statusText: 'Disconnected'
+      };
     }
-    return { border: 'border-slate-800', bar: 'bg-slate-600', text: 'text-slate-400' };
+    if (isActive) {
+      if (percent <= 10) {
+        return {
+          border: 'border-red-400 dark:border-red-700',
+          bar: 'bg-red-600',
+          pill: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800',
+          statusText: 'Active · Critical'
+        };
+      }
+      if (percent <= 20) {
+        return {
+          border: 'border-amber-400 dark:border-amber-700',
+          bar: 'bg-amber-500',
+          pill: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+          statusText: 'Active · Low'
+        };
+      }
+      return {
+        border: 'border-cyan-500/70 dark:border-cyan-600/70',
+        bar: 'bg-cyan-600 dark:bg-cyan-400',
+        pill: 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800',
+        statusText: 'Active Feed'
+      };
+    }
+    return {
+      border: 'border-[var(--border-subtle)]',
+      bar: 'bg-teal-600 dark:bg-teal-400',
+      pill: 'bg-[var(--surface-card)] text-[var(--text-muted)] border-[var(--border-subtle)]',
+      statusText: percent > 0 ? 'Standby Ready' : 'Empty'
+    };
   };
 
-  const primaryColors = getCylinderColor(primaryCylinder.percentRemaining, activeSource === 'primary', primaryCylinder.connected);
-  const secondaryColors = getCylinderColor(secondaryCylinder.percentRemaining, activeSource === 'secondary', secondaryCylinder.connected);
+  const primaryMeta = getCylinderMeta(
+    primaryCylinder.percentRemaining,
+    activeSource === 'primary',
+    primaryCylinder.connected
+  );
+  const secondaryMeta = getCylinderMeta(
+    secondaryCylinder.percentRemaining,
+    activeSource === 'secondary',
+    secondaryCylinder.connected
+  );
+
+  const isReserveActive = activeSource === 'reserve';
 
   return (
-    <div className="bg-[#0c1220]/80 rounded-2xl border border-slate-800 p-5 shadow-xl backdrop-blur-md space-y-5">
-      {/* Panel Header & Manual Switching Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center">
-            <Cylinder className="w-4 h-4 text-teal-400" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              Oxygen Supply Management
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                AUTO-FAILOVER: {settings.switchingThresholdPercent}% THRESHOLD
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">Dual-cylinder failover and 5-minute failsafe reserve buffer telemetry</p>
-          </div>
+    <section className="clinical-card p-4 sm:p-6 space-y-5">
+      {/* Section Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border-subtle)]">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
+            Oxygen Supply &amp; Failover Redundancy
+          </h2>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5 tabular-nums">
+            Dual-cylinder manifold with automatic switchover at {settings.switchingThresholdPercent}% and 5-minute safety reserve
+          </p>
         </div>
 
-        {/* Global Refill & Source Selector */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refillCylinder('all')}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5 transition-all"
-            title="Simulate connecting fresh, full 150-bar cylinders"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Refill All Supplies</span>
-          </button>
-        </div>
+        <button
+          onClick={() => refillCylinder('all')}
+          className="clinical-btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-1.5 self-start sm:self-auto"
+          title="Restore all cylinders and reserve buffer to 150 bar"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+          <span>Refill All Supplies</span>
+        </button>
       </div>
 
-      {/* 3 Supply Source Cards Grid: Primary, Secondary, Reserve Buffer */}
+      {/* 3 Supply Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        {/* 1. PRIMARY CYLINDER */}
-        <div className={`p-4 rounded-xl bg-[#080d1a] border transition-all duration-200 relative flex flex-col justify-between ${primaryColors.border}`}>
-          {activeSource === 'primary' && (
-            <div className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-500 text-slate-950 uppercase tracking-wider flex items-center gap-1 shadow-md">
-              <CheckCircle2 className="w-3 h-3" /> ACTIVE FEED
-            </div>
-          )}
-
+        {/* 1. Primary Cylinder */}
+        <div
+          className={`clinical-well p-4 flex flex-col justify-between border transition-colors duration-200 ${primaryMeta.border}`}
+        >
           <div>
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                <Cylinder className="w-4 h-4 text-cyan-400" />
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+                <Cylinder className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                 Primary Cylinder (A-1)
               </span>
-              <span className="font-mono text-[10px]">
-                {primaryCylinder.connected ? 'CONNECTED' : 'DISCONNECTED'}
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${primaryMeta.pill}`}>
+                {primaryMeta.statusText}
               </span>
             </div>
 
-            {/* Percentage & Gauge */}
-            <div className="flex items-baseline justify-between mt-1 mb-2">
-              <div>
-                <span className="text-3xl font-black text-white">{primaryCylinder.percentRemaining}%</span>
-                <span className="text-xs text-slate-400 ml-1.5 font-mono">({Math.round(primaryCylinder.remainingGasLiters)}L Gas)</span>
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="tabular-nums">
+                <span className="text-3xl font-bold font-mono text-[var(--text-primary)]">
+                  {primaryCylinder.percentRemaining}%
+                </span>
+                <span className="text-xs text-[var(--text-muted)] ml-1.5 font-mono">
+                  {Math.round(primaryCylinder.remainingGasLiters)} L
+                </span>
               </div>
-              <div className="text-right font-mono">
-                <div className="text-sm font-bold text-slate-200">{primaryCylinder.currentPressureBar} bar</div>
-                <div className="text-[10px] text-slate-400">{primaryCylinder.pressurePsi} PSI</div>
+              <div className="text-right font-mono tabular-nums">
+                <div className="text-sm font-semibold text-[var(--text-primary)]">
+                  {primaryCylinder.currentPressureBar} bar
+                </div>
+                <div className="text-[11px] text-[var(--text-muted)]">{primaryCylinder.pressurePsi} PSI</div>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-2 bg-[var(--border-subtle)] rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-500 ${primaryColors.bar}`}
+                className={`h-full transition-[width] duration-700 ease-out rounded-full ${primaryMeta.bar}`}
                 style={{ width: `${primaryCylinder.percentRemaining}%` }}
               />
             </div>
 
-            {/* Runtime Estimate */}
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-300 font-mono bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <span className="flex items-center gap-1 text-slate-400 text-[11px]">
-                <Clock className="w-3 h-3 text-cyan-400" /> Estimated Runtime:
+            <div className="mt-3 flex items-center justify-between text-xs font-mono text-[var(--text-secondary)] pt-2.5 border-t border-[var(--border-subtle)] tabular-nums">
+              <span className="inline-flex items-center gap-1 text-[var(--text-muted)]">
+                <Clock className="w-3.5 h-3.5" />
+                Runtime
               </span>
-              <span className="font-bold text-white">
+              <span className="font-semibold text-[var(--text-primary)]">
                 {Math.floor(primaryCylinder.remainingMinutes / 60)}h {primaryCylinder.remainingMinutes % 60}m
               </span>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2">
+          <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center gap-2">
             <button
               disabled={activeSource === 'primary' || !primaryCylinder.connected || primaryCylinder.percentRemaining <= 0}
               onClick={() => switchActiveSource('primary', 'Manual Switch to Primary Cylinder')}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors duration-150 ${
                 activeSource === 'primary'
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 cursor-default'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed'
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] border border-[var(--accent-border)] cursor-default'
+                  : 'clinical-btn-secondary disabled:opacity-45 disabled:cursor-not-allowed'
               }`}
             >
-              <ArrowRightLeft className="w-3 h-3" />
+              <ArrowRightLeft className="w-3.5 h-3.5" />
               <span>{activeSource === 'primary' ? 'Supplying' : 'Switch To'}</span>
             </button>
 
             <button
               onClick={() => refillCylinder('primary')}
-              title="Refill Primary to 150 bar"
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
+              title="Refill Primary Cylinder"
+              className="clinical-btn-secondary p-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
 
             <button
               onClick={() => toggleCylinderConnection('primary')}
-              title={primaryCylinder.connected ? 'Disconnect Cylinder' : 'Connect Cylinder'}
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
+              title={primaryCylinder.connected ? 'Disconnect Primary Cylinder' : 'Connect Primary Cylinder'}
+              className="clinical-btn-secondary p-1.5"
             >
-              {primaryCylinder.connected ? <Unplug className="w-3.5 h-3.5 text-amber-400" /> : <Plug className="w-3.5 h-3.5 text-emerald-400" />}
+              {primaryCylinder.connected ? (
+                <Unplug className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <Plug className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              )}
             </button>
           </div>
         </div>
 
-        {/* 2. SECONDARY CYLINDER (BACKUP) */}
-        <div className={`p-4 rounded-xl bg-[#080d1a] border transition-all duration-200 relative flex flex-col justify-between ${secondaryColors.border}`}>
-          {activeSource === 'secondary' && (
-            <div className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-black bg-teal-500 text-slate-950 uppercase tracking-wider flex items-center gap-1 shadow-md">
-              <CheckCircle2 className="w-3 h-3" /> ACTIVE FEED
-            </div>
-          )}
-
+        {/* 2. Secondary Cylinder */}
+        <div
+          className={`clinical-well p-4 flex flex-col justify-between border transition-colors duration-200 ${secondaryMeta.border}`}
+        >
           <div>
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                <Cylinder className="w-4 h-4 text-teal-400" />
-                Secondary Cylinder (B-2)
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+                <Cylinder className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                Backup Cylinder (B-2)
               </span>
-              <span className="font-mono text-[10px]">
-                {secondaryCylinder.connected ? 'STANDBY READY' : 'DISCONNECTED'}
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${secondaryMeta.pill}`}>
+                {secondaryMeta.statusText}
               </span>
             </div>
 
-            {/* Percentage & Gauge */}
-            <div className="flex items-baseline justify-between mt-1 mb-2">
-              <div>
-                <span className="text-3xl font-black text-white">{secondaryCylinder.percentRemaining}%</span>
-                <span className="text-xs text-slate-400 ml-1.5 font-mono">({Math.round(secondaryCylinder.remainingGasLiters)}L Gas)</span>
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="tabular-nums">
+                <span className="text-3xl font-bold font-mono text-[var(--text-primary)]">
+                  {secondaryCylinder.percentRemaining}%
+                </span>
+                <span className="text-xs text-[var(--text-muted)] ml-1.5 font-mono">
+                  {Math.round(secondaryCylinder.remainingGasLiters)} L
+                </span>
               </div>
-              <div className="text-right font-mono">
-                <div className="text-sm font-bold text-slate-200">{secondaryCylinder.currentPressureBar} bar</div>
-                <div className="text-[10px] text-slate-400">{secondaryCylinder.pressurePsi} PSI</div>
+              <div className="text-right font-mono tabular-nums">
+                <div className="text-sm font-semibold text-[var(--text-primary)]">
+                  {secondaryCylinder.currentPressureBar} bar
+                </div>
+                <div className="text-[11px] text-[var(--text-muted)]">{secondaryCylinder.pressurePsi} PSI</div>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-2 bg-[var(--border-subtle)] rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-500 ${secondaryColors.bar}`}
+                className={`h-full transition-[width] duration-700 ease-out rounded-full ${secondaryMeta.bar}`}
                 style={{ width: `${secondaryCylinder.percentRemaining}%` }}
               />
             </div>
 
-            {/* Runtime Estimate */}
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-300 font-mono bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <span className="flex items-center gap-1 text-slate-400 text-[11px]">
-                <Clock className="w-3 h-3 text-teal-400" /> Estimated Runtime:
+            <div className="mt-3 flex items-center justify-between text-xs font-mono text-[var(--text-secondary)] pt-2.5 border-t border-[var(--border-subtle)] tabular-nums">
+              <span className="inline-flex items-center gap-1 text-[var(--text-muted)]">
+                <Clock className="w-3.5 h-3.5" />
+                Runtime
               </span>
-              <span className="font-bold text-white">
+              <span className="font-semibold text-[var(--text-primary)]">
                 {Math.floor(secondaryCylinder.remainingMinutes / 60)}h {secondaryCylinder.remainingMinutes % 60}m
               </span>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2">
+          <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center gap-2">
             <button
               disabled={activeSource === 'secondary' || !secondaryCylinder.connected || secondaryCylinder.percentRemaining <= 0}
-              onClick={() => switchActiveSource('secondary', 'Manual Switch to Secondary Backup Cylinder')}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
+              onClick={() => switchActiveSource('secondary', 'Manual Switch to Backup Cylinder')}
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors duration-150 ${
                 activeSource === 'secondary'
-                  ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30 cursor-default'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed'
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] border border-[var(--accent-border)] cursor-default'
+                  : 'clinical-btn-secondary disabled:opacity-45 disabled:cursor-not-allowed'
               }`}
             >
-              <ArrowRightLeft className="w-3 h-3" />
+              <ArrowRightLeft className="w-3.5 h-3.5" />
               <span>{activeSource === 'secondary' ? 'Supplying' : 'Switch To'}</span>
             </button>
 
             <button
               onClick={() => refillCylinder('secondary')}
-              title="Refill Secondary to 150 bar"
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
+              title="Refill Backup Cylinder"
+              className="clinical-btn-secondary p-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
 
             <button
               onClick={() => toggleCylinderConnection('secondary')}
-              title={secondaryCylinder.connected ? 'Disconnect Cylinder' : 'Connect Cylinder'}
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
+              title={secondaryCylinder.connected ? 'Disconnect Backup Cylinder' : 'Connect Backup Cylinder'}
+              className="clinical-btn-secondary p-1.5"
             >
-              {secondaryCylinder.connected ? <Unplug className="w-3.5 h-3.5 text-amber-400" /> : <Plug className="w-3.5 h-3.5 text-emerald-400" />}
+              {secondaryCylinder.connected ? (
+                <Unplug className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <Plug className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              )}
             </button>
           </div>
         </div>
 
-        {/* 3. FIVE-MINUTE RESERVE BUFFER (The Original OXYSYNC Concept) */}
-        <div className={`p-4 rounded-xl bg-[#080d1a] border transition-all duration-200 relative flex flex-col justify-between ${
-          activeSource === 'reserve'
-            ? 'border-red-500/80 shadow-lg shadow-red-500/20 animate-pulse bg-red-950/20'
-            : (reserveBuffer.percentRemaining < 100 ? 'border-amber-500/40' : 'border-slate-800')
-        }`}>
-          {activeSource === 'reserve' && (
-            <div className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white uppercase tracking-wider flex items-center gap-1 shadow-md animate-bounce">
-              <ShieldAlert className="w-3 h-3" /> EMERGENCY RESERVE ACTIVE
-            </div>
-          )}
-
+        {/* 3. Five-Minute Reserve Buffer */}
+        <div
+          className={`clinical-well p-4 flex flex-col justify-between border transition-colors duration-200 ${
+            isReserveActive
+              ? 'border-red-500 bg-red-50/70 dark:bg-red-950/35'
+              : reserveBuffer.percentRemaining < 100
+              ? 'border-amber-400 dark:border-amber-700'
+              : 'border-[var(--border-subtle)]'
+          }`}
+        >
           <div>
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                <ShieldAlert className={`w-4 h-4 ${activeSource === 'reserve' ? 'text-red-400' : 'text-cyan-400'}`} />
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+                <ShieldAlert
+                  className={`w-4 h-4 ${
+                    isReserveActive ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
+                  }`}
+                />
                 5-Min Reserve Buffer
               </span>
-              <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
-                reserveBuffer.isRefilling ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
-              }`}>
-                {reserveBuffer.isRefilling ? 'REFILLING' : 'PRIMED'}
+              <span
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                  isReserveActive
+                    ? 'bg-red-600 text-white border-red-600'
+                    : reserveBuffer.isRefilling
+                    ? 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800'
+                    : 'bg-[var(--surface-card)] text-[var(--text-muted)] border-[var(--border-subtle)]'
+                }`}
+              >
+                {isReserveActive ? 'Emergency Feed' : reserveBuffer.isRefilling ? 'Recharging' : 'Primed'}
               </span>
             </div>
 
-            {/* Countdown / Percentage */}
-            <div className="flex items-baseline justify-between mt-1 mb-2">
-              <div>
-                <span className="text-3xl font-black text-white">{reserveBuffer.percentRemaining}%</span>
-                <span className="text-xs text-slate-400 ml-1.5 font-mono">({reserveBuffer.currentGasLiters.toFixed(1)}L / {reserveBuffer.capacityLiters}L)</span>
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="tabular-nums">
+                <span className="text-3xl font-bold font-mono text-[var(--text-primary)]">
+                  {reserveBuffer.percentRemaining}%
+                </span>
+                <span className="text-xs text-[var(--text-muted)] ml-1.5 font-mono">
+                  {reserveBuffer.currentGasLiters.toFixed(1)} / {reserveBuffer.capacityLiters} L
+                </span>
               </div>
-              <div className="text-right font-mono">
-                <div className={`text-sm font-bold ${activeSource === 'reserve' ? 'text-red-400 animate-pulse text-base' : 'text-slate-200'}`}>
-                  {Math.floor(reserveBuffer.remainingSeconds / 60)}:{(reserveBuffer.remainingSeconds % 60).toString().padStart(2, '0')}
+              <div className="text-right font-mono tabular-nums">
+                <div
+                  className={`text-sm font-bold ${
+                    isReserveActive ? 'text-red-700 dark:text-red-400' : 'text-[var(--text-primary)]'
+                  }`}
+                >
+                  {Math.floor(reserveBuffer.remainingSeconds / 60)}:
+                  {(reserveBuffer.remainingSeconds % 60).toString().padStart(2, '0')}
                 </div>
-                <div className="text-[10px] text-slate-400">Target: 05:00 min</div>
+                <div className="text-[11px] text-[var(--text-muted)]">Target 05:00</div>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full h-2 bg-[var(--border-subtle)] rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-500 ${
-                  activeSource === 'reserve'
-                    ? 'bg-red-500'
-                    : (reserveBuffer.percentRemaining > 50 ? 'bg-cyan-400' : 'bg-amber-400')
+                className={`h-full transition-[width] duration-700 ease-out rounded-full ${
+                  isReserveActive
+                    ? 'bg-red-600'
+                    : reserveBuffer.percentRemaining > 50
+                    ? 'bg-amber-500'
+                    : 'bg-orange-500'
                 }`}
                 style={{ width: `${reserveBuffer.percentRemaining}%` }}
               />
             </div>
 
-            {/* Validation Disclaimer Notice */}
-            <div className="mt-3 p-2 rounded-lg bg-slate-950/80 border border-slate-800/80 text-[10px] text-slate-400 leading-tight">
-              <div className="flex items-start gap-1">
-                <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Original Concept:</strong> 5-min duration is a design target providing temporary continuity during cylinder swap. Requires physical clinical validation.
-                </span>
-              </div>
-            </div>
+            <p className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)] leading-relaxed">
+              Temporary bridge buffer designed to maintain continuous delivery during physical tank replacement.
+            </p>
           </div>
 
-          {/* Action Bar */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2">
+          <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
             <button
               onClick={() => switchActiveSource('reserve', 'Manual Activation of 5-Min Reserve Buffer', 'emergency_failover')}
-              disabled={activeSource === 'reserve' || reserveBuffer.percentRemaining <= 0}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
-                activeSource === 'reserve'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/40 cursor-default'
-                  : 'bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50'
+              disabled={isReserveActive || reserveBuffer.percentRemaining <= 0}
+              className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors duration-150 ${
+                isReserveActive
+                  ? 'bg-red-600 text-white cursor-default'
+                  : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 dark:bg-red-950/50 dark:hover:bg-red-900/60 dark:text-red-300 dark:border-red-800/60 disabled:opacity-45'
               }`}
             >
-              <ShieldAlert className="w-3 h-3" />
-              <span>{activeSource === 'reserve' ? 'Discharging Reserve' : 'Engage Reserve Buffer'}</span>
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>{isReserveActive ? 'Discharging Reserve' : 'Engage Reserve Buffer'}</span>
             </button>
           </div>
         </div>
-
       </div>
-    </div>
+    </section>
   );
 };

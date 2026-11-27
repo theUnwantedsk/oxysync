@@ -1,15 +1,5 @@
 import React from 'react';
-import { 
-  Settings as SettingsIcon, 
-  RotateCcw, 
-  Volume2, 
-  Sliders, 
-  Clock, 
-  Cylinder, 
-  ShieldAlert, 
-  Zap, 
-  Info
-} from 'lucide-react';
+import { RotateCcw, Volume2, Sliders, Clock, Cylinder, ShieldAlert, Zap, Info } from 'lucide-react';
 import { useTelemetry } from '../../context/TelemetryContext';
 
 export const SettingsView: React.FC = () => {
@@ -38,257 +28,245 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto py-2">
-      
-      {/* Top Banner */}
-      <div className="bg-[#0c1220]/80 rounded-2xl border border-slate-800 p-5 shadow-xl backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="clinical-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
-              <SettingsIcon className="w-4 h-4 text-cyan-400" />
-            </div>
-            <h1 className="text-xl font-bold text-white">System Simulation Settings</h1>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Configure simulation speed, gas capacities, switching thresholds, and audio alarm parameters.
+          <h1 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
+            System Settings &amp; Calibration
+          </h1>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            Configure simulation clock multiplier, tank water capacities, switchover threshold, and audio alerts
           </p>
         </div>
 
         <button
           onClick={handleResetSettings}
-          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all self-start sm:self-auto"
+          className="clinical-btn-secondary px-3.5 py-1.5 text-xs inline-flex items-center gap-1.5 self-start sm:self-auto"
         >
-          <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Reset All Defaults</span>
+          <RotateCcw className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+          <span>Reset Defaults</span>
         </button>
       </div>
 
-      {/* Settings Grid */}
-      <div className="space-y-4">
-        
-        {/* 1. Simulation Speed */}
-        <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-400" />
-                Simulation Clock Speed
-              </label>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Accelerates time passage to demonstrate cylinder depletion and automated failover in minutes instead of hours.
-              </p>
+      {/* Speed */}
+      <div className="clinical-card p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              Simulation Clock Multiplier
             </div>
-            <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              {settings.simulationSpeed}x Speed
-            </span>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Accelerate gas consumption to observe multi-hour transitions within minutes
+            </p>
           </div>
+          <span className="font-mono text-xs font-semibold text-[var(--accent-primary)] tabular-nums">
+            {settings.simulationSpeed}×
+          </span>
+        </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2">
-            {[0.5, 1, 2, 5, 10].map((spd) => (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 font-mono">
+          {[0.5, 1, 2, 5, 10].map((spd) => {
+            const active = settings.simulationSpeed === spd;
+            return (
               <button
                 key={spd}
                 onClick={() => setSimulationSpeed(spd)}
-                className={`py-2 rounded-xl text-xs font-mono font-bold transition-all ${
-                  settings.simulationSpeed === spd
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                className={`py-2 rounded-lg text-xs font-semibold tabular-nums transition-colors duration-150 ${
+                  active ? 'clinical-btn-primary' : 'clinical-btn-secondary'
                 }`}
               >
-                {spd}x {spd === 1 && '(Realtime)'}
+                {spd}× {spd === 1 ? '(Live)' : ''}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </div>
 
-        {/* 2. Switching Threshold */}
-        <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-cyan-400" />
-                Automated Failover Switching Threshold
-              </label>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Primary cylinder percentage that immediately triggers automatic valve failover to the secondary backup cylinder.
-              </p>
+      {/* Auto-Switch Threshold */}
+      <div className="clinical-card p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+              <Sliders className="w-4 h-4 text-[var(--accent-primary)]" />
+              Failover Threshold
             </div>
-            <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              {settings.switchingThresholdPercent}%
-            </span>
-          </div>
-
-          <input
-            type="range"
-            min="5"
-            max="30"
-            step="1"
-            value={settings.switchingThresholdPercent}
-            onChange={(e) => setSwitchingThreshold(parseInt(e.target.value, 10))}
-            className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
-          />
-
-          <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-            <span>5% (Aggressive)</span>
-            <span>10% (Recommended)</span>
-            <span>20% (Conservative)</span>
-            <span>30% (High Reserve)</span>
-          </div>
-        </div>
-
-        {/* 3. Patient Flow Rate Consumption */}
-        <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-xs font-bold text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-teal-400" />
-                Patient Delivered Flow Rate (Consumption)
-              </label>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Continuous volumetric gas delivery through the patient nasal cannula in Liters per minute.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              {settings.flowRateLpm.toFixed(1)} L/min
-            </span>
-          </div>
-
-          <input
-            type="range"
-            min="0.5"
-            max="15.0"
-            step="0.5"
-            value={settings.flowRateLpm}
-            onChange={(e) => setFlowRate(parseFloat(e.target.value))}
-            className="w-full accent-teal-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
-          />
-
-          <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-            <span>0.5 L/m (Pediatric/Low)</span>
-            <span>2.5 L/m (Standard Nasal)</span>
-            <span>6.0 L/m (Moderate Mask)</span>
-            <span>15.0 L/m (Non-Rebreather)</span>
-          </div>
-        </div>
-
-        {/* 4. Cylinder Capacities & Reserve Buffer Configuration */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          
-          {/* Cylinder Size Selector */}
-          <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3">
-            <label className="text-xs font-bold text-white flex items-center gap-2">
-              <Cylinder className="w-4 h-4 text-indigo-400" />
-              Cylinder Water-Capacity (Liters)
-            </label>
-            <p className="text-[11px] text-slate-400">
-              Defines internal water volume for D/E (4.4L = 660L gas) or M-size (10.0L = 1500L gas).
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Primary capacity percentage that triggers automatic changeover to Backup (B-2)
             </p>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => updateSettings({ primaryWaterCapacity: 4.4, secondaryWaterCapacity: 4.4 })}
-                className={`p-2.5 rounded-xl text-xs font-mono font-semibold transition-all border ${
-                  settings.primaryWaterCapacity === 4.4
-                    ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200'
-                    : 'bg-slate-900 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div>4.4 L (D/E-Size)</div>
-                <div className="text-[10px] text-slate-500">660L Gas at 150 Bar</div>
-              </button>
-
-              <button
-                onClick={() => updateSettings({ primaryWaterCapacity: 10.0, secondaryWaterCapacity: 10.0 })}
-                className={`p-2.5 rounded-xl text-xs font-mono font-semibold transition-all border ${
-                  settings.primaryWaterCapacity === 10.0
-                    ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200'
-                    : 'bg-slate-900 border-slate-800 text-slate-400'
-                }`}
-              >
-                <div>10.0 L (M-Size)</div>
-                <div className="text-[10px] text-slate-500">1500L Gas at 150 Bar</div>
-              </button>
-            </div>
           </div>
-
-          {/* Reserve Buffer Capacity */}
-          <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3">
-            <label className="text-xs font-bold text-white flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-400" />
-              Reserve Buffer Volume (Liters)
-            </label>
-            <p className="text-[11px] text-slate-400">
-              Target volume for conceptual temporary bridge buffer during cylinder swap.
-            </p>
-
-            <div className="flex items-center gap-3 pt-2">
-              <input
-                type="range"
-                min="5.0"
-                max="25.0"
-                step="2.5"
-                value={settings.reserveCapacityLiters}
-                onChange={(e) => updateSettings({ reserveCapacityLiters: parseFloat(e.target.value) })}
-                className="flex-1 accent-amber-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
-              />
-              <span className="font-mono text-xs font-bold text-amber-300 w-16 text-right">
-                {settings.reserveCapacityLiters.toFixed(1)} L
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-500 font-mono">
-              Provides {(settings.reserveCapacityLiters / settings.flowRateLpm).toFixed(1)} minutes at {settings.flowRateLpm.toFixed(1)} L/min flow
-            </div>
-          </div>
-
+          <span className="font-mono text-xs font-semibold text-[var(--accent-primary)] tabular-nums">
+            {settings.switchingThresholdPercent}%
+          </span>
         </div>
 
-        {/* 5. Audio Alert Preferences */}
-        <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3 shadow-lg">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-white flex items-center gap-2">
-              <Volume2 className="w-4 h-4 text-cyan-400" />
-              Medical Audio Alert Preferences
-            </label>
-            <button
-              onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                settings.soundEnabled
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                  : 'bg-slate-900 text-slate-500 border-slate-800'
-              }`}
-            >
-              {settings.soundEnabled ? 'Sound Enabled' : 'Muted'}
-            </button>
-          </div>
+        <input
+          type="range"
+          min="5"
+          max="30"
+          step="1"
+          value={settings.switchingThresholdPercent}
+          onChange={(e) => setSwitchingThreshold(parseInt(e.target.value, 10))}
+          className="clinical-slider"
+        />
 
-          <div className="flex items-center gap-4 pt-1">
-            <span className="text-xs text-slate-400 font-mono">Volume:</span>
-            <input
-              type="range"
-              min="0.0"
-              max="1.0"
-              step="0.05"
-              value={settings.audioVolume}
-              onChange={(e) => updateSettings({ audioVolume: parseFloat(e.target.value) })}
-              className="flex-1 accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
-            />
-            <span className="font-mono text-xs font-bold text-slate-300 w-12 text-right">
-              {Math.round(settings.audioVolume * 100)}%
-            </span>
-          </div>
+        <div className="flex justify-between text-[11px] text-[var(--text-muted)] font-mono">
+          <span>5% Aggressive</span>
+          <span>10% Standard</span>
+          <span>20% Conservative</span>
+          <span>30% High Reserve</span>
+        </div>
+      </div>
 
-          <p className="text-[10px] text-slate-400">
-            Synthesizes IEC 60601-1-8 medical alarm tones (C6 harmonic pulses) directly via the Web Audio API without external audio files.
+      {/* Cannula Flow */}
+      <div className="clinical-card p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              Cannula Flow Rate
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Continuous oxygen volumetric flow rate in liters per minute
+            </p>
+          </div>
+          <span className="font-mono text-xs font-semibold text-teal-600 dark:text-teal-400 tabular-nums">
+            {settings.flowRateLpm.toFixed(1)} L/min
+          </span>
+        </div>
+
+        <input
+          type="range"
+          min="0.5"
+          max="15.0"
+          step="0.5"
+          value={settings.flowRateLpm}
+          onChange={(e) => setFlowRate(parseFloat(e.target.value))}
+          className="clinical-slider"
+        />
+
+        <div className="flex justify-between text-[11px] text-[var(--text-muted)] font-mono">
+          <span>0.5 L/m Low</span>
+          <span>2.5 L/m Nasal</span>
+          <span>6.0 L/m Mask</span>
+          <span>15.0 L/m High Flow</span>
+        </div>
+      </div>
+
+      {/* Capacities */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="clinical-card p-5 space-y-3">
+          <div className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+            <Cylinder className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            Cylinder Water Capacity
+          </div>
+          <p className="text-xs text-[var(--text-muted)]">
+            Water volume for D/E (4.4 L = 660 L NTP) or M-Size (10.0 L = 1500 L NTP) tanks
           </p>
+
+          <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
+            {[
+              [4.4, '4.4 L (D/E)', '660 L @ 150 Bar'],
+              [10.0, '10.0 L (M)', '1500 L @ 150 Bar']
+            ].map(([cap, label, sub]) => {
+              const active = settings.primaryWaterCapacity === cap;
+              return (
+                <button
+                  key={String(cap)}
+                  onClick={() =>
+                    updateSettings({
+                      primaryWaterCapacity: cap as number,
+                      secondaryWaterCapacity: cap as number
+                    })
+                  }
+                  className={`p-2.5 rounded-lg text-xs border text-left transition-colors duration-150 ${
+                    active
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--text-primary)] font-semibold'
+                      : 'clinical-well text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+                  }`}
+                >
+                  <div>{label}</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">{sub}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        <div className="clinical-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              Reserve Buffer Volume
+            </span>
+            <span className="font-mono text-xs font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
+              {settings.reserveCapacityLiters.toFixed(1)} L
+            </span>
+          </div>
+          <p className="text-xs text-[var(--text-muted)]">
+            Internal buffer capacity bridging cylinder replacements
+          </p>
+
+          <input
+            type="range"
+            min="5.0"
+            max="25.0"
+            step="2.5"
+            value={settings.reserveCapacityLiters}
+            onChange={(e) => updateSettings({ reserveCapacityLiters: parseFloat(e.target.value) })}
+            className="clinical-slider"
+          />
+
+          <div className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">
+            Provides {(settings.reserveCapacityLiters / settings.flowRateLpm).toFixed(1)} min at{' '}
+            {settings.flowRateLpm.toFixed(1)} L/min
+          </div>
+        </div>
       </div>
 
-      {/* Safety Persistence Note */}
-      <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center gap-2">
-        <Info className="w-4 h-4 text-cyan-400 shrink-0" />
-        <span>All configuration parameters are automatically saved in browser LocalStorage.</span>
+      {/* Audio */}
+      <div className="clinical-card p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+            <Volume2 className="w-4 h-4 text-[var(--accent-primary)]" />
+            Medical Audio Alarms
+          </span>
+          <button
+            onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 ${
+              settings.soundEnabled ? 'clinical-btn-primary' : 'clinical-btn-secondary'
+            }`}
+          >
+            {settings.soundEnabled ? 'Sound Enabled' : 'Muted'}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4 pt-1">
+          <span className="text-xs text-[var(--text-muted)] font-mono">Volume</span>
+          <input
+            type="range"
+            min="0.0"
+            max="1.0"
+            step="0.05"
+            value={settings.audioVolume}
+            onChange={(e) => updateSettings({ audioVolume: parseFloat(e.target.value) })}
+            className="clinical-slider flex-1"
+          />
+          <span className="font-mono text-xs font-semibold text-[var(--text-primary)] w-12 text-right tabular-nums">
+            {Math.round(settings.audioVolume * 100)}%
+          </span>
+        </div>
+
+        <p className="text-xs text-[var(--text-muted)]">
+          Generates Web Audio IEC 60601-1-8 alarm cadence locally in browser.
+        </p>
       </div>
 
+      <div className="clinical-well p-3.5 text-xs text-[var(--text-muted)] inline-flex items-center gap-2 w-full">
+        <Info className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+        <span>Preferences persist automatically in browser LocalStorage.</span>
+      </div>
     </div>
   );
 };

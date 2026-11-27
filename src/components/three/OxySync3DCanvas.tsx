@@ -13,6 +13,10 @@ interface OxySync3DCanvasProps {
   autoRotate: boolean;
 }
 
+function dampValue(current: number, target: number, lambda: number, dt: number): number {
+  return current + (target - current) * (1 - Math.exp(-lambda * dt));
+}
+
 function drawLcdScreen(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -36,7 +40,6 @@ function drawLcdScreen(
     esp32Host: string;
   }
 ) {
-  // Classic backlit medical cyan-blue 16x2 LCD look
   ctx.fillStyle = telemetry.hasCritical ? '#2b0912' : '#052938';
   ctx.fillRect(0, 0, width, height);
 
@@ -44,7 +47,6 @@ function drawLcdScreen(
   ctx.lineWidth = 6;
   ctx.strokeRect(4, 4, width - 8, height - 8);
 
-  // Subtle LCD character cell grid
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   for (let col = 0; col < 16; col++) {
     ctx.fillRect(22 + col * 29.5, 22, 24, 62);
@@ -94,7 +96,6 @@ function drawLcdScreen(
   ctx.fillText(row0.slice(0, 16), 24, 54);
   ctx.fillText(row1.slice(0, 16), 24, 136);
 
-  // Page indicator badge in corner
   ctx.fillStyle = 'rgba(103, 232, 249, 0.55)';
   ctx.font = 'bold 14px monospace';
   ctx.fillText(`P${(pageIdx % 5) + 1}/5`, width - 52, 20);
@@ -187,25 +188,25 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     } catch {
-      setWebglError('WebGL is unavailable in this browser context. Please enable hardware acceleration or use a modern browser.');
+      setWebglError('WebGL is unavailable in this browser context.');
       return;
     }
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(container.clientWidth || 640, container.clientHeight || 420);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.12;
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const lightBg = new THREE.Color(0xeef4fb);
-    const darkBg = new THREE.Color(0x040812);
-    const sceneFog = new THREE.FogExp2(0xeef4fb, 0.02);
+    const lightBg = new THREE.Color(0xf1f5f9);
+    const darkBg = new THREE.Color(0x070b14);
+    const sceneFog = new THREE.FogExp2(0xf1f5f9, 0.016);
     scene.background = stateRef.current.theme === 'light' ? lightBg : darkBg;
     scene.fog = sceneFog;
 
     const camera = new THREE.PerspectiveCamera(
-      42,
+      40,
       (container.clientWidth || 640) / (container.clientHeight || 420),
       0.1,
       100
@@ -214,42 +215,40 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.07;
+    controls.dampingFactor = 0.055;
+    controls.rotateSpeed = 0.82;
+    controls.zoomSpeed = 0.9;
     controls.maxPolarAngle = Math.PI / 2 - 0.05;
     controls.minDistance = 2.6;
     controls.maxDistance = 16;
     controls.target.set(...TWIN_COMPONENTS.overview.cameraTarget);
 
-    // Stop camera fly-to if user grabs the viewport
     const cancelFly = () => {
       flyTargetRef.current.active = false;
     };
     controls.addEventListener('start', cancelFly);
 
-    // Studio & Medical Accent Lighting
-    const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x0f172a, 0.85);
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 1.15);
     scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.45);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.65);
     keyLight.position.set(6, 10, 7);
     scene.add(keyLight);
 
-    const rimCyan = new THREE.PointLight(0x06b6d4, 1.8, 16);
+    const rimCyan = new THREE.PointLight(0x06b6d4, 1.5, 16);
     rimCyan.position.set(-4, 4, -3);
     scene.add(rimCyan);
 
-    const rimWarm = new THREE.PointLight(0xf59e0b, 1.1, 14);
+    const rimWarm = new THREE.PointLight(0xf59e0b, 0.95, 14);
     rimWarm.position.set(4, 3, 4);
     scene.add(rimWarm);
 
-    // Build 3D Hardware Rig
     const rig: TwinSceneRefs = buildOxySyncRig();
     scene.add(rig.rootGroup);
 
-    // Animated Oxygen Flow Particles
     const FLOW_PARTICLES = 18;
     const flowSpheres: THREE.Mesh[] = [];
-    const flowParticleGeo = new THREE.SphereGeometry(0.065, 10, 10);
+    const flowParticleGeo = new THREE.SphereGeometry(0.06, 10, 10);
     const flowParticleMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
     for (let i = 0; i < FLOW_PARTICLES; i++) {
       const m = new THREE.Mesh(flowParticleGeo, flowParticleMat);
@@ -268,7 +267,6 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
       bleedSpheres.push(m);
     }
 
-    // Raycasting for Click-to-Inspect
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerDownPos = { x: 0, y: 0 };
@@ -279,7 +277,7 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
 
     const handlePointerUp = (e: PointerEvent) => {
       const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-      if (dist > 6) return; // Ignore orbit drags
+      if (dist > 6) return;
 
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -320,100 +318,127 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
 
     let animId = 0;
     let explodeLerp = 0;
-    let lastLcdDraw = 0;
+    let pRatioSmooth = Math.max(0.02, stateRef.current.primaryCylinder.percentRemaining / 100);
+    let sRatioSmooth = Math.max(0.02, stateRef.current.secondaryCylinder.percentRemaining / 100);
+    let rRatioSmooth = Math.max(0.02, stateRef.current.reserveBuffer.percentRemaining / 100);
+    let appliedTheme: 'light' | 'dark' | null = null;
+    let lastLcdDraw = -1;
+    let elapsed = 0;
     const clock = new THREE.Clock();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime();
+      const dt = Math.min(0.05, Math.max(0.001, clock.getDelta()));
+      elapsed += dt;
       const s = stateRef.current;
-      const isLight = s.theme === 'light';
-      scene.background = isLight ? lightBg : darkBg;
-      sceneFog.color.copy(isLight ? lightBg : darkBg);
-      sceneFog.density = isLight ? 0.018 : 0.032;
-      hemiLight.intensity = isLight ? 1.25 : 0.85;
-      keyLight.intensity = isLight ? 1.75 : 1.45;
-      rig.basePlateMat.color.setHex(isLight ? 0xdbe4ef : 0x0b1222);
-      const inactivePipeHex = isLight ? 0x94a3b8 : 0x1e293b;
 
-      // Smooth Camera Fly-To
+      // Apply theme scene palette only on theme change
+      if (appliedTheme !== s.theme) {
+        appliedTheme = s.theme;
+        const isLight = s.theme === 'light';
+        scene.background = isLight ? lightBg : darkBg;
+        sceneFog.color.copy(isLight ? lightBg : darkBg);
+        sceneFog.density = isLight ? 0.016 : 0.028;
+        hemiLight.intensity = isLight ? 1.25 : 0.85;
+        keyLight.intensity = isLight ? 1.7 : 1.45;
+        rig.basePlateMat.color.setHex(isLight ? 0xe2e8f0 : 0x0b1222);
+      }
+
+      const inactivePipeHex = s.theme === 'light' ? 0x94a3b8 : 0x1e293b;
+
+      // Frame-rate independent smooth camera transition
       if (flyTargetRef.current.active) {
-        camera.position.lerp(flyTargetRef.current.pos, 0.08);
-        controls.target.lerp(flyTargetRef.current.target, 0.08);
+        const camDamp = 1 - Math.exp(-5.5 * dt);
+        camera.position.lerp(flyTargetRef.current.pos, camDamp);
+        controls.target.lerp(flyTargetRef.current.target, camDamp);
         if (
-          camera.position.distanceTo(flyTargetRef.current.pos) < 0.05 &&
-          controls.target.distanceTo(flyTargetRef.current.target) < 0.05
+          camera.position.distanceTo(flyTargetRef.current.pos) < 0.04 &&
+          controls.target.distanceTo(flyTargetRef.current.target) < 0.04
         ) {
           flyTargetRef.current.active = false;
         }
       }
 
       controls.autoRotate = s.autoRotate && !flyTargetRef.current.active;
-      controls.autoRotateSpeed = 0.7;
+      controls.autoRotateSpeed = 0.55;
       controls.update();
 
-      // Exploded View Interpolation
-      const targetExplode = s.exploded ? 1 : 0;
-      explodeLerp += (targetExplode - explodeLerp) * 0.1;
+      // Smooth exploded assembly interpolation
+      explodeLerp = dampValue(explodeLerp, s.exploded ? 1 : 0, 7.5, dt);
       for (const part of rig.explodableParts) {
         part.object.position.copy(part.basePos).addScaledVector(part.explodeOffset, explodeLerp);
       }
 
-      // Cylinder Fill Levels
-      const pRatio = Math.max(0.02, Math.min(1, s.primaryCylinder.percentRemaining / 100));
-      rig.primaryFillMesh.scale.y = pRatio;
-      rig.primaryFillMat.color.setHex(pRatio <= 0.15 ? 0xf59e0b : 0x06b6d4);
-      rig.primaryFillMat.emissive.setHex(pRatio <= 0.15 ? 0xf59e0b : 0x06b6d4);
-      rig.primaryFillMat.emissiveIntensity = s.activeSource === 'primary' ? 0.85 : 0.3;
+      // Smooth cylinder fill transitions
+      const pTarget = Math.max(0.02, Math.min(1, s.primaryCylinder.percentRemaining / 100));
+      pRatioSmooth = dampValue(pRatioSmooth, pTarget, 6.0, dt);
+      rig.primaryFillMesh.scale.y = pRatioSmooth;
+      rig.primaryFillMat.color.setHex(pTarget <= 0.15 ? 0xf59e0b : 0x06b6d4);
+      rig.primaryFillMat.emissive.setHex(pTarget <= 0.15 ? 0xf59e0b : 0x06b6d4);
+      rig.primaryFillMat.emissiveIntensity = dampValue(
+        rig.primaryFillMat.emissiveIntensity,
+        s.activeSource === 'primary' ? 0.85 : 0.25,
+        6.0,
+        dt
+      );
 
-      const sRatio = Math.max(0.02, Math.min(1, s.secondaryCylinder.percentRemaining / 100));
-      rig.secondaryFillMesh.scale.y = sRatio;
-      rig.secondaryFillMat.color.setHex(sRatio <= 0.15 ? 0xf59e0b : 0x14b8a6);
-      rig.secondaryFillMat.emissive.setHex(sRatio <= 0.15 ? 0xf59e0b : 0x14b8a6);
-      rig.secondaryFillMat.emissiveIntensity = s.activeSource === 'secondary' ? 0.85 : 0.3;
+      const sTarget = Math.max(0.02, Math.min(1, s.secondaryCylinder.percentRemaining / 100));
+      sRatioSmooth = dampValue(sRatioSmooth, sTarget, 6.0, dt);
+      rig.secondaryFillMesh.scale.y = sRatioSmooth;
+      rig.secondaryFillMat.color.setHex(sTarget <= 0.15 ? 0xf59e0b : 0x14b8a6);
+      rig.secondaryFillMat.emissive.setHex(sTarget <= 0.15 ? 0xf59e0b : 0x14b8a6);
+      rig.secondaryFillMat.emissiveIntensity = dampValue(
+        rig.secondaryFillMat.emissiveIntensity,
+        s.activeSource === 'secondary' ? 0.85 : 0.25,
+        6.0,
+        dt
+      );
 
-      const rRatio = Math.max(0.02, Math.min(1, s.reserveBuffer.percentRemaining / 100));
-      rig.reserveFillMesh.scale.y = rRatio;
+      const rTarget = Math.max(0.02, Math.min(1, s.reserveBuffer.percentRemaining / 100));
+      rRatioSmooth = dampValue(rRatioSmooth, rTarget, 6.0, dt);
+      rig.reserveFillMesh.scale.y = rRatioSmooth;
       const rColor = s.activeSource === 'reserve' ? 0xef4444 : s.reserveBuffer.isRefilling ? 0x38bdf8 : 0xf59e0b;
       rig.reserveFillMat.color.setHex(rColor);
       rig.reserveFillMat.emissive.setHex(rColor);
-      rig.reserveFillMat.emissiveIntensity = s.activeSource === 'reserve' ? 1.0 : 0.45;
+      rig.reserveFillMat.emissiveIntensity = dampValue(
+        rig.reserveFillMat.emissiveIntensity,
+        s.activeSource === 'reserve' ? 1.0 : 0.42,
+        6.0,
+        dt
+      );
 
-      // Solenoid Valve & Relay LEDs
       const isPrim = s.activeSource === 'primary';
       const isSec = s.activeSource === 'secondary';
       const isRes = s.activeSource === 'reserve';
 
-      rig.valveLedMats.primary.emissiveIntensity = isPrim ? 1.4 : 0.08;
-      rig.valveLedMats.secondary.emissiveIntensity = isSec ? 1.4 : 0.08;
-      rig.valveLedMats.reserve.emissiveIntensity = isRes ? 1.6 : 0.08;
+      rig.valveLedMats.primary.emissiveIntensity = dampValue(rig.valveLedMats.primary.emissiveIntensity, isPrim ? 1.4 : 0.08, 8, dt);
+      rig.valveLedMats.secondary.emissiveIntensity = dampValue(rig.valveLedMats.secondary.emissiveIntensity, isSec ? 1.4 : 0.08, 8, dt);
+      rig.valveLedMats.reserve.emissiveIntensity = dampValue(rig.valveLedMats.reserve.emissiveIntensity, isRes ? 1.6 : 0.08, 8, dt);
 
-      rig.relayLedMats.primary.emissiveIntensity = isPrim ? 1.5 : 0.08;
-      rig.relayLedMats.secondary.emissiveIntensity = isSec ? 1.5 : 0.08;
-      rig.relayLedMats.reserve.emissiveIntensity = isRes ? 1.5 : 0.08;
+      rig.relayLedMats.primary.emissiveIntensity = rig.valveLedMats.primary.emissiveIntensity;
+      rig.relayLedMats.secondary.emissiveIntensity = rig.valveLedMats.secondary.emissiveIntensity;
+      rig.relayLedMats.reserve.emissiveIntensity = rig.valveLedMats.reserve.emissiveIntensity;
 
-      // Pipe Active Highlighting
       rig.pipeMats.primary.color.setHex(isPrim ? 0x06b6d4 : inactivePipeHex);
-      rig.pipeMats.primary.emissiveIntensity = isPrim ? 0.55 : 0.05;
+      rig.pipeMats.primary.emissiveIntensity = isPrim ? 0.52 : 0.04;
 
       rig.pipeMats.secondary.color.setHex(isSec ? 0x14b8a6 : inactivePipeHex);
-      rig.pipeMats.secondary.emissiveIntensity = isSec ? 0.55 : 0.05;
+      rig.pipeMats.secondary.emissiveIntensity = isSec ? 0.52 : 0.04;
 
-      rig.pipeMats.manifold.color.setHex(isPrim || isSec ? 0x22d3ee : inactivePipeHex);
-      rig.pipeMats.manifold.emissiveIntensity = isPrim || isSec ? 0.45 : 0.05;
+      rig.pipeMats.manifold.color.setHex(isPrim || isSec ? 0x0891b2 : inactivePipeHex);
+      rig.pipeMats.manifold.emissiveIntensity = isPrim || isSec ? 0.45 : 0.04;
 
       rig.pipeMats.reserve.color.setHex(isRes ? 0xef4444 : inactivePipeHex);
-      rig.pipeMats.reserve.emissiveIntensity = isRes ? 0.65 : 0.05;
+      rig.pipeMats.reserve.emissiveIntensity = isRes ? 0.65 : 0.04;
 
       rig.pipeMats.bleed.color.setHex(s.reserveBuffer.isRefilling ? 0x38bdf8 : inactivePipeHex);
-      rig.pipeMats.bleed.emissiveIntensity = s.reserveBuffer.isRefilling ? 0.5 : 0.05;
+      rig.pipeMats.bleed.emissiveIntensity = s.reserveBuffer.isRefilling ? 0.5 : 0.04;
 
       rig.pipeMats.delivery.color.setHex(
-        isRes ? 0xef4444 : isPrim || isSec ? 0x22d3ee : inactivePipeHex
+        isRes ? 0xef4444 : isPrim || isSec ? 0x0891b2 : inactivePipeHex
       );
-      rig.pipeMats.delivery.emissiveIntensity = s.activeSource === 'none' ? 0.02 : 0.5;
+      rig.pipeMats.delivery.emissiveIntensity = s.activeSource === 'none' ? 0.02 : 0.48;
 
-      // Flow Particles along Active Curve
       const activeCurve = isPrim
         ? rig.curves.primary
         : isSec
@@ -447,9 +472,8 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
         }
       }
 
-      // Patient Lungs Expansion & Cardiac Pulse Ring
       const respHz = Math.max(8, s.vitals.respiratoryRate) / 60;
-      const breath = 1 + 0.12 * Math.sin(elapsed * respHz * Math.PI * 2);
+      const breath = 1 + 0.11 * Math.sin(elapsed * respHz * Math.PI * 2);
       rig.lungLeft.scale.set(0.85 * breath, 1.45 * (1 + (breath - 1) * 0.5), 0.72 * breath);
       rig.lungRight.scale.set(0.85 * breath, 1.45 * (1 + (breath - 1) * 0.5), 0.72 * breath);
 
@@ -462,26 +486,27 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
       const beat = (elapsed * pulseHz) % 1;
       const pulseScale = 0.85 + beat * 0.45;
       rig.pulseRingMesh.scale.set(pulseScale, pulseScale, 1);
-      rig.pulseRingMat.opacity = (1 - beat) * 0.85;
+      rig.pulseRingMat.opacity = (1 - beat) * 0.8;
       rig.pulseRingMat.color.setHex(s.vitals.spo2 < 90 ? 0xef4444 : 0x10b981);
 
-      // Piezo Buzzer Alarm Wave (GPIO 25)
       const unack = s.alerts.filter((a) => !a.acknowledged);
-      const hasCritical = unack.some((a) => a.severity === 'critical') || s.activeSource === 'reserve' || s.activeSource === 'none';
+      const hasCritical =
+        unack.some((a) => a.severity === 'critical') ||
+        s.activeSource === 'reserve' ||
+        s.activeSource === 'none';
       const hasWarning = !hasCritical && unack.some((a) => a.severity === 'warning');
 
       if (hasCritical || hasWarning) {
-        const ringPhase = (elapsed * (hasCritical ? 2.4 : 1.0)) % 1;
-        const rScale = 0.8 + ringPhase * 1.9;
+        const ringPhase = (elapsed * (hasCritical ? 2.2 : 0.9)) % 1;
+        const rScale = 0.8 + ringPhase * 1.8;
         rig.buzzerRingMesh.scale.set(rScale, rScale, 1);
         rig.buzzerRingMat.color.setHex(hasCritical ? 0xef4444 : 0xf59e0b);
-        rig.buzzerRingMat.opacity = (1 - ringPhase) * 0.9;
+        rig.buzzerRingMat.opacity = (1 - ringPhase) * 0.85;
       } else {
         rig.buzzerRingMat.opacity = 0;
       }
 
-      // Refresh 16x2 I2C LCD CanvasTexture at ~4 Hz
-      if (elapsed - lastLcdDraw >= 0.25) {
+      if (lastLcdDraw < 0 || elapsed - lastLcdDraw >= 0.25) {
         lastLcdDraw = elapsed;
         drawLcdScreen(rig.lcdCtx, rig.lcdCanvas.width, rig.lcdCanvas.height, s.lcdPageIndex, {
           spo2: s.vitals.spo2,
@@ -529,7 +554,7 @@ export const OxySync3DCanvas: React.FC<OxySync3DCanvasProps> = ({
 
   if (webglError) {
     return (
-      <div className="w-full h-full flex items-center justify-center p-6 text-center bg-[#040812] text-slate-300 text-xs font-mono">
+      <div className="w-full h-full flex items-center justify-center p-6 text-center bg-[var(--surface-well)] text-[var(--text-secondary)] text-xs font-mono">
         {webglError}
       </div>
     );

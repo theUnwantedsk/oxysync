@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { TelemetryProvider } from './context/TelemetryContext';
-import { Header, ActiveNavTab } from './components/Header';
+import { Header, ActiveNavTab, NAV_ITEMS, NavItemConfig } from './components/Header';
 import { ActiveAlarmBanner } from './components/ActiveAlarmBanner';
 
 // Dashboard Components (eagerly loaded for instant first paint)
@@ -8,7 +8,7 @@ import { BedsideMonitorCard } from './components/dashboard/BedsideMonitorCard';
 import { OxygenSupplyPanel } from './components/dashboard/OxygenSupplyPanel';
 import { SystemOverviewPanel } from './components/dashboard/SystemOverviewPanel';
 
-// Secondary View Pages (lazy-loaded to keep initial bundle lean)
+// Secondary View Pages (lazy-loaded)
 const DigitalTwin3DView = lazy(() =>
   import('./components/views/DigitalTwin3DView').then((m) => ({ default: m.DigitalTwin3DView }))
 );
@@ -43,133 +43,118 @@ const SettingsView = lazy(() =>
   import('./components/views/SettingsView').then((m) => ({ default: m.SettingsView }))
 );
 
-import { Activity, ShieldCheck } from 'lucide-react';
+const NAV_GROUPS: NavItemConfig['group'][] = ['Monitoring', 'Diagnostics', 'Care & Records'];
 
 const ViewFallback: React.FC = () => (
-  <div className="p-8 rounded-2xl bg-[#0c1220]/80 border border-slate-800 text-center text-xs font-mono text-slate-400">
-    Loading OXYSYNC module...
+  <div className="clinical-card p-8 text-center text-xs font-mono text-[var(--text-muted)]">
+    Loading module...
   </div>
 );
 
 const MainAppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveNavTab>('dashboard');
 
-  return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
-      
-      {/* Primary Header with Live Telemetry Pills & Navigation */}
-      <Header currentTab={activeTab} onSelectTab={setActiveTab} />
-
-      {/* Dynamic Urgent Alarm Banner (IEC 60601-1-8 alerts) */}
-      <ActiveAlarmBanner />
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 transition-all duration-300">
-        
-        {/* VIEW 1: Operational Clinical Bedside Monitor & Supplies */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-fadeIn">
+  const renderActiveView = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <div className="space-y-5">
             <BedsideMonitorCard />
             <OxygenSupplyPanel />
             <SystemOverviewPanel />
           </div>
-        )}
+        );
+      case 'digital_twin':
+        return <DigitalTwin3DView />;
+      case 'supply_path':
+        return <SupplyPathView />;
+      case 'time_travel':
+        return <TimeScrubberView />;
+      case 'demonstration':
+        return <LiveDemonstrationView />;
+      case 'hardware':
+        return <HardwareTelemetryView />;
+      case 'predictive':
+        return <PredictiveAnalyticsView />;
+      case 'caregiver':
+        return <CaregiverView />;
+      case 'analytics':
+        return <AnalyticsReportsView />;
+      case 'presentation':
+        return <PresentationModeView onOpen3DTwin={() => setActiveTab('digital_twin')} />;
+      case 'innovation':
+        return <AboutInnovationView />;
+      case 'settings':
+        return <SettingsView />;
+    }
+  };
 
-        <Suspense fallback={<ViewFallback />}>
-          {activeTab === 'digital_twin' && (
-            <div className="animate-fadeIn">
-              <DigitalTwin3DView />
+  return (
+    <div className="min-h-screen bg-[var(--surface-canvas)] text-[var(--text-primary)] flex flex-col">
+      <Header currentTab={activeTab} onSelectTab={setActiveTab} />
+      <ActiveAlarmBanner />
+
+      <div className="flex-1 max-w-[1440px] w-full mx-auto flex gap-6 px-3 sm:px-5 py-4 sm:py-6">
+        {/* Clean Grouped Sidebar Navigation on Desktop */}
+        <aside className="hidden lg:block w-56 shrink-0">
+          <div className="sticky top-20 space-y-5">
+            {NAV_GROUPS.map((groupName) => (
+              <div key={groupName}>
+                <div className="px-2.5 mb-1.5 text-[11px] font-semibold text-[var(--text-muted)] tracking-tight">
+                  {groupName}
+                </div>
+                <div className="space-y-0.5">
+                  {NAV_ITEMS.filter((item) => item.group === groupName).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-left transition-colors duration-150 ${
+                          isActive
+                            ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] font-semibold'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium'
+                        }`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 shrink-0 ${
+                            isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'
+                          }`}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        {/* Active View Canvas with GPU-composited fade-slide reveal */}
+        <main className="flex-1 min-w-0">
+          <Suspense fallback={<ViewFallback />}>
+            <div key={activeTab} className="animate-view-enter">
+              {renderActiveView()}
             </div>
-          )}
+          </Suspense>
+        </main>
+      </div>
 
-          {activeTab === 'supply_path' && (
-            <div className="animate-fadeIn">
-              <SupplyPathView />
-            </div>
-          )}
-
-          {activeTab === 'time_travel' && (
-            <div className="animate-fadeIn">
-              <TimeScrubberView />
-            </div>
-          )}
-
-          {activeTab === 'demonstration' && (
-            <div className="animate-fadeIn">
-              <LiveDemonstrationView />
-            </div>
-          )}
-
-          {activeTab === 'hardware' && (
-            <div className="animate-fadeIn">
-              <HardwareTelemetryView />
-            </div>
-          )}
-
-          {activeTab === 'predictive' && (
-            <div className="animate-fadeIn">
-              <PredictiveAnalyticsView />
-            </div>
-          )}
-
-          {activeTab === 'caregiver' && (
-            <div className="animate-fadeIn">
-              <CaregiverView />
-            </div>
-          )}
-
-          {activeTab === 'analytics' && (
-            <div className="animate-fadeIn">
-              <AnalyticsReportsView />
-            </div>
-          )}
-
-          {activeTab === 'presentation' && (
-            <div className="animate-fadeIn">
-              <PresentationModeView onOpen3DTwin={() => setActiveTab('digital_twin')} />
-            </div>
-          )}
-
-          {activeTab === 'innovation' && (
-            <div className="animate-fadeIn">
-              <AboutInnovationView />
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div className="animate-fadeIn">
-              <SettingsView />
-            </div>
-          )}
-        </Suspense>
-
-      </main>
-
-      {/* Professional Medical Engineering Footer */}
-      <footer className="border-t border-slate-800/80 bg-[#050810] py-4 px-4 sm:px-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+      {/* Minimal Workstation Footer */}
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--surface-card)] py-3 px-4 sm:px-6 text-xs text-[var(--text-muted)]">
+        <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-cyan-500/20 flex items-center justify-center">
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            </div>
-            <span className="font-bold text-slate-300">OXYSYNC 2.0</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400">Intelligent Oxygen. Continuous Care.</span>
+            <span className="font-semibold text-[var(--text-primary)]">OXYSYNC 2.0</span>
+            <span>·</span>
+            <span>Intelligent Oxygen. Continuous Care.</span>
           </div>
-
-          <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span>PROTOTYPE MONITOR · SIMULATED TELEMETRY</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-slate-500">
-            <span>Tri-Platform Suite</span>
+          <div className="font-mono text-[11px]">
+            Prototype Telemetry Platform · Boyle&apos;s Law Failover Simulation
           </div>
         </div>
       </footer>
-
     </div>
   );
 };

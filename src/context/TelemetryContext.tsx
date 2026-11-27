@@ -34,8 +34,7 @@ import {
 import { usbSerialBridge } from '../services/usbSerialBridge';
 
 interface TelemetryContextType {
-  // Precision Clock & Timing State
-  masterClockMs: string;
+  // Precision Timing State
   therapyElapsedSeconds: number;
   therapyElapsedFormatted: string;
   sessionStartTime: string;
@@ -82,7 +81,12 @@ interface TelemetryContextType {
   toggleTheme: () => void;
   triggerScenario: (scenarioId: EmergencyScenarioId) => void;
   resetSimulation: () => void;
-  switchActiveSource: (source: ActiveSupplySource, reason?: string, triggerType?: SwitchingEvent['triggerType']) => void;
+  switchActiveSource: (
+    source: ActiveSupplySource,
+    reason?: string,
+    triggerType?: SwitchingEvent['triggerType'],
+    percentOverrides?: { primaryPercent?: number; secondaryPercent?: number; reservePercent?: number }
+  ) => void;
   setFlowRate: (flowRateLpm: number) => void;
   setSimulationSpeed: (speed: number) => void;
   jumpTimeForwardMinutes: (minutes: number) => void;
@@ -230,7 +234,6 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [settings]);
 
-  const [masterClockMs, setMasterClockMs] = useState<string>('');
   const [therapyElapsedSeconds, setTherapyElapsedSeconds] = useState<number>(0);
   const sessionStartTimeRef = useRef<string>(new Date().toLocaleTimeString());
   const [lastScenarioUpdatedAt, setLastScenarioUpdatedAt] = useState<string>(new Date().toLocaleTimeString());
@@ -474,20 +477,6 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setSnoozeRemaining(audioAlert.getSnoozeRemainingSeconds());
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Master Millisecond Clock Ticker (Runs at 20 Hz = 50ms)
-  useEffect(() => {
-    const clockInterval = window.setInterval(() => {
-      const now = new Date();
-      const h = now.getHours().toString().padStart(2, '0');
-      const m = now.getMinutes().toString().padStart(2, '0');
-      const s = now.getSeconds().toString().padStart(2, '0');
-      const ms = Math.floor(now.getMilliseconds() / 10).toString().padStart(2, '0');
-      setMasterClockMs(`${h}:${m}:${s}.${ms}`);
-    }, 50);
-
-    return () => clearInterval(clockInterval);
   }, []);
 
   const activeAlertTypesRef = useRef<Set<string>>(new Set());
@@ -821,9 +810,13 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     (
       newSource: ActiveSupplySource,
       reason: string = 'Manual Operator Switch',
-      triggerType: SwitchingEvent['triggerType'] = 'manual_override'
+      triggerType: SwitchingEvent['triggerType'] = 'manual_override',
+      percentOverrides?: { primaryPercent?: number; secondaryPercent?: number; reservePercent?: number }
     ) => {
       const latest = stateRef.current;
+      const effPrimaryPct = percentOverrides?.primaryPercent ?? latest.primaryCylinder.percentRemaining;
+      const effSecondaryPct = percentOverrides?.secondaryPercent ?? latest.secondaryCylinder.percentRemaining;
+      const effReservePct = percentOverrides?.reservePercent ?? latest.reserveBuffer.percentRemaining;
       setActiveSource(newSource);
       audioAlert.playValveActuationClick();
 
@@ -852,9 +845,9 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         toSource: newSource,
         reason,
         triggerType,
-        primaryPercent: latest.primaryCylinder.percentRemaining,
-        secondaryPercent: latest.secondaryCylinder.percentRemaining,
-        reservePercent: latest.reserveBuffer.percentRemaining,
+        primaryPercent: effPrimaryPct,
+        secondaryPercent: effSecondaryPct,
+        reservePercent: effReservePct,
         manifoldPressureBar: newSource === 'none' ? 0.0 : 3.5
       };
 
@@ -864,7 +857,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addAlert(
           'warning',
           'Automatic Backup Switch Executed',
-          `Primary cylinder reached ${latest.primaryCylinder.percentRemaining}%. Automatically switched to Secondary Backup Cylinder.`,
+          `Primary cylinder reached ${effPrimaryPct}%. Automatically switched to Secondary Backup Cylinder.`,
           'auto_switched'
         );
       } else if (newSource === 'reserve') {
@@ -1040,7 +1033,18 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             remainingMinutes: Math.round(nextSecGas / flow)
           };
         });
-        switchActiveSource('secondary', `Fast-forward (${minutes}m) crossed threshold`, 'auto_threshold');
+        const jumpedPrimPct = Math.round(
+          (nextPrimGas / (prevPrimary.maxPressureBar * prevPrimary.waterCapacityLiters)) * 100
+        );
+        const jumpedSecPct = Math.round(
+          (Math.max(0, latest.secondaryCylinder.remainingGasLiters - overflowLiters) /
+            (latest.secondaryCylinder.maxPressureBar * latest.secondaryCylinder.waterCapacityLiters)) *
+            100
+        );
+        switchActiveSource('secondary', `Fast-forward (${minutes}m) crossed threshold`, 'auto_threshold', {
+          primaryPercent: jumpedPrimPct,
+          secondaryPercent: jumpedSecPct
+        });
       }
 
       setTherapyElapsedSeconds((t) => t + minutes * 60);
@@ -1138,7 +1142,9 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             status: 'active',
             valveOpen: true
           }));
-          switchActiveSource('secondary', 'Automatic Switchover triggered by 10% threshold', 'auto_threshold');
+          switchActiveSource('secondary', 'Automatic Switchover triggered by 10% threshold', 'auto_threshold', {
+            primaryPercent: 8
+          });
           break;
 
         case 'low_spo2':
@@ -1191,7 +1197,10 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             valveOpen: false
           }));
           setSystemMode('emergency_reserve');
-          switchActiveSource('reserve', 'Both Primary & Secondary cylinders depleted (0 bar)', 'emergency_failover');
+          switchActiveSource('reserve', 'Both Primary & Secondary cylinders depleted (0 bar)', 'emergency_failover', {
+            primaryPercent: 0,
+            secondaryPercent: 0
+          });
           break;
 
         case 'reserve_active':
@@ -1334,13 +1343,18 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             switchActiveSource(
               'secondary',
               `Primary reached ${nextPercent}% (threshold: ${current.settings.switchingThresholdPercent}%)`,
-              'auto_threshold'
+              'auto_threshold',
+              { primaryPercent: nextPercent }
             );
           } else if (nextGas <= 0) {
             if (current.secondaryCylinder.connected && current.secondaryCylinder.currentPressureBar > 0) {
-              switchActiveSource('secondary', 'Primary cylinder completely exhausted', 'primary_depletion');
+              switchActiveSource('secondary', 'Primary cylinder completely exhausted', 'primary_depletion', {
+                primaryPercent: 0
+              });
             } else {
-              switchActiveSource('reserve', 'Primary depleted and backup unavailable', 'emergency_failover');
+              switchActiveSource('reserve', 'Primary depleted and backup unavailable', 'emergency_failover', {
+                primaryPercent: 0
+              });
             }
           }
         }
@@ -1364,7 +1378,9 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           });
 
           if (nextGas <= 0) {
-            switchActiveSource('reserve', 'Secondary backup cylinder completely exhausted', 'emergency_failover');
+            switchActiveSource('reserve', 'Secondary backup cylinder completely exhausted', 'emergency_failover', {
+              secondaryPercent: 0
+            });
           }
         }
       } else if (current.activeSource === 'reserve') {
@@ -1557,71 +1573,125 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
-  return (
-    <TelemetryContext.Provider
-      value={{
-        masterClockMs,
-        therapyElapsedSeconds,
-        therapyElapsedFormatted,
-        sessionStartTime: sessionStartTimeRef.current,
-        lastScenarioUpdatedAt,
-        esp32Host,
-        esp32SyncEnabled,
-        esp32ConnectionState,
-        esp32LastError,
-        connectEsp32,
-        disconnectEsp32,
-        usbSupported,
-        usbStatus,
-        usbError,
-        usbLastPacketAt,
-        usbLcdStatus,
-        usbRawLogs,
-        connectUsbEsp32,
-        disconnectUsbEsp32,
-        sendUsbCommand,
-        clearUsbLogs,
-        vitals,
-        primaryCylinder,
-        secondaryCylinder,
-        reserveBuffer,
-        activeSource,
-        systemMode,
-        switchingHistory,
-        alerts,
-        activeScenario,
-        scenarioHistory,
-        settings,
-        predictions,
-        caregiverNotifications,
-        telemetryPackets,
-        isMuted,
-        snoozeRemaining,
-        theme,
-        toggleTheme,
-        triggerScenario,
-        resetSimulation,
-        switchActiveSource,
-        setFlowRate,
-        setSimulationSpeed,
-        jumpTimeForwardMinutes,
-        setSwitchingThreshold,
-        refillCylinder,
-        toggleCylinderConnection,
-        updateSettings,
-        acknowledgeAlert,
-        acknowledgeAllAlerts,
-        clearAllAlerts,
-        toggleMute,
-        togglePulseOximeterSound,
-        snoozeAlarms,
-        requestBrowserNotification,
-        sendDemoNotification
-      }}
-    >
-      {children}
-    </TelemetryContext.Provider>
+  const contextValue = useMemo<TelemetryContextType>(
+    () => ({
+      therapyElapsedSeconds,
+      therapyElapsedFormatted,
+      sessionStartTime: sessionStartTimeRef.current,
+      lastScenarioUpdatedAt,
+      esp32Host,
+      esp32SyncEnabled,
+      esp32ConnectionState,
+      esp32LastError,
+      connectEsp32,
+      disconnectEsp32,
+      usbSupported,
+      usbStatus,
+      usbError,
+      usbLastPacketAt,
+      usbLcdStatus,
+      usbRawLogs,
+      connectUsbEsp32,
+      disconnectUsbEsp32,
+      sendUsbCommand,
+      clearUsbLogs,
+      vitals,
+      primaryCylinder,
+      secondaryCylinder,
+      reserveBuffer,
+      activeSource,
+      systemMode,
+      switchingHistory,
+      alerts,
+      activeScenario,
+      scenarioHistory,
+      settings,
+      predictions,
+      caregiverNotifications,
+      telemetryPackets,
+      isMuted,
+      snoozeRemaining,
+      theme,
+      toggleTheme,
+      triggerScenario,
+      resetSimulation,
+      switchActiveSource,
+      setFlowRate,
+      setSimulationSpeed,
+      jumpTimeForwardMinutes,
+      setSwitchingThreshold,
+      refillCylinder,
+      toggleCylinderConnection,
+      updateSettings,
+      acknowledgeAlert,
+      acknowledgeAllAlerts,
+      clearAllAlerts,
+      toggleMute,
+      togglePulseOximeterSound,
+      snoozeAlarms,
+      requestBrowserNotification,
+      sendDemoNotification
+    }),
+    [
+      therapyElapsedSeconds,
+      therapyElapsedFormatted,
+      lastScenarioUpdatedAt,
+      esp32Host,
+      esp32SyncEnabled,
+      esp32ConnectionState,
+      esp32LastError,
+      connectEsp32,
+      disconnectEsp32,
+      usbSupported,
+      usbStatus,
+      usbError,
+      usbLastPacketAt,
+      usbLcdStatus,
+      usbRawLogs,
+      connectUsbEsp32,
+      disconnectUsbEsp32,
+      sendUsbCommand,
+      clearUsbLogs,
+      vitals,
+      primaryCylinder,
+      secondaryCylinder,
+      reserveBuffer,
+      activeSource,
+      systemMode,
+      switchingHistory,
+      alerts,
+      activeScenario,
+      scenarioHistory,
+      settings,
+      predictions,
+      caregiverNotifications,
+      telemetryPackets,
+      isMuted,
+      snoozeRemaining,
+      theme,
+      toggleTheme,
+      triggerScenario,
+      resetSimulation,
+      switchActiveSource,
+      setFlowRate,
+      setSimulationSpeed,
+      jumpTimeForwardMinutes,
+      setSwitchingThreshold,
+      refillCylinder,
+      toggleCylinderConnection,
+      updateSettings,
+      acknowledgeAlert,
+      acknowledgeAllAlerts,
+      clearAllAlerts,
+      toggleMute,
+      togglePulseOximeterSound,
+      snoozeAlarms,
+      requestBrowserNotification,
+      sendDemoNotification
+    ]
   );
+
+  return <TelemetryContext.Provider value={contextValue}>{children}</TelemetryContext.Provider>;
 };
 
 export const useTelemetry = () => {

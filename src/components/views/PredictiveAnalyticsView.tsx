@@ -1,23 +1,14 @@
 import React, { useMemo } from 'react';
-import { 
-  TrendingUp, 
-  Clock, 
-  Calculator, 
-  CheckCircle2, 
-  Info, 
-  Calendar, 
-  Zap, 
-  ShieldAlert
-} from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend 
+import { TrendingUp, Clock, Calculator, CheckCircle2, Calendar, Zap, ShieldAlert } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
 } from 'recharts';
 import { useTelemetry } from '../../context/TelemetryContext';
 import { generatePredictiveTrend } from '../../services/physicsEngine';
@@ -32,7 +23,6 @@ export const PredictiveAnalyticsView: React.FC = () => {
     setFlowRate
   } = useTelemetry();
 
-  // Generate predictive consumption trend points for Recharts
   const chartData = useMemo(() => {
     return generatePredictiveTrend(
       primaryCylinder.remainingGasLiters,
@@ -43,8 +33,8 @@ export const PredictiveAnalyticsView: React.FC = () => {
       primaryCylinder.maxPressureBar * primaryCylinder.waterCapacityLiters,
       secondaryCylinder.maxPressureBar * secondaryCylinder.waterCapacityLiters,
       reserveBuffer.capacityLiters,
-      16, // 16 intervals
-      15  // 15 min steps = 4 hours forecast
+      16,
+      15
     );
   }, [
     primaryCylinder.remainingGasLiters,
@@ -60,116 +50,92 @@ export const PredictiveAnalyticsView: React.FC = () => {
   ]);
 
   return (
-    <div className="space-y-6">
-      
-      {/* Top Header */}
-      <div className="bg-[#0c1220]/80 rounded-2xl border border-slate-800 p-5 shadow-xl backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="clinical-card p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-teal-400" />
-            </div>
-            <h1 className="text-xl font-bold text-white">Predictive Depletion Analytics</h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-              DETERMINISTIC PHYSICS MODEL
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time calculations of gas consumption, threshold crossing times, and total supply runtime forecasts.
+          <h1 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
+            Depletion Forecast &amp; Boyle&apos;s Law Modeling
+          </h1>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            Analytical gas volume projection, switchover crossing time, and runtime headroom
           </p>
         </div>
-
-        {/* AI Disclaimer Badge */}
-        <div className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-xs flex items-center gap-2 font-mono">
-          <Info className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>Physics-based mathematical formulas (Boyle's Law), not black-box heuristic AI.</span>
-        </div>
+        <span className="font-mono text-xs text-[var(--text-muted)]">
+          V_gas = P × V_water · T = V / Q
+        </span>
       </div>
 
-      {/* 4 Prediction Metric Cards */}
+      {/* 4 Forecast Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Total System Depletion */}
-        <div className="p-4 rounded-xl bg-[#080d1a] border border-cyan-500/30">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-semibold flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
-              Total Depletion Time
-            </span>
+        <div className="clinical-card p-4">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
+            <Clock className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+            Combined Depletion
           </div>
-          <div className="text-2xl font-black text-white mt-1">
+          <div className="text-2xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {Math.floor(predictions.totalSystemMinutes / 60)}h {predictions.totalSystemMinutes % 60}m
           </div>
-          <div className="mt-2 text-[11px] font-mono text-cyan-300">
-            Projected: {predictions.totalSystemDepletionTimeStr}
+          <div className="mt-1.5 text-xs font-mono text-[var(--accent-primary)] tabular-nums">
+            Empty at {predictions.totalSystemDepletionTimeStr}
           </div>
         </div>
 
-        {/* Primary Cylinder Depletion */}
-        <div className="p-4 rounded-xl bg-[#080d1a] border border-slate-800">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-semibold flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-teal-400" />
-              Primary Exhaustion
-            </span>
+        <div className="clinical-card p-4">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
+            <Zap className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            Primary Exhaustion
           </div>
-          <div className="text-2xl font-black text-white mt-1">
+          <div className="text-2xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {Math.floor(predictions.primaryDepletionMinutes / 60)}h {predictions.primaryDepletionMinutes % 60}m
           </div>
-          <div className="mt-2 text-[11px] font-mono text-slate-400">
-            Expected switch: {predictions.predictedSwitchTimeStr}
+          <div className="mt-1.5 text-xs font-mono text-[var(--text-muted)] tabular-nums">
+            Auto-switch {predictions.predictedSwitchTimeStr}
           </div>
         </div>
 
-        {/* Secondary Cylinder Depletion */}
-        <div className="p-4 rounded-xl bg-[#080d1a] border border-slate-800">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-semibold flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-              Backup Exhaustion
-            </span>
+        <div className="clinical-card p-4">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
+            <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            Backup Exhaustion
           </div>
-          <div className="text-2xl font-black text-white mt-1">
+          <div className="text-2xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {Math.floor(predictions.secondaryDepletionMinutes / 60)}h {predictions.secondaryDepletionMinutes % 60}m
           </div>
-          <div className="mt-2 text-[11px] font-mono text-slate-400">
-            Projected: {predictions.secondaryDepletionTimeStr}
+          <div className="mt-1.5 text-xs font-mono text-[var(--text-muted)] tabular-nums">
+            Empty at {predictions.secondaryDepletionTimeStr}
           </div>
         </div>
 
-        {/* Reserve Buffer Runtime */}
-        <div className="p-4 rounded-xl bg-[#080d1a] border border-slate-800">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-semibold flex items-center gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-              5-Min Reserve Bridge
-            </span>
+        <div className="clinical-card p-4">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            Reserve Bridge
           </div>
-          <div className="text-2xl font-black text-white mt-1">
+          <div className="text-2xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {Math.floor(predictions.reserveDepletionSeconds / 60)}m {predictions.reserveDepletionSeconds % 60}s
           </div>
-          <div className="mt-2 text-[11px] font-mono text-amber-400">
-            Target: 05:00 at {settings.flowRateLpm.toFixed(1)} L/min
+          <div className="mt-1.5 text-xs font-mono text-amber-600 dark:text-amber-400 tabular-nums">
+            Target 05:00 at {settings.flowRateLpm.toFixed(1)} L/min
           </div>
         </div>
-
       </div>
 
-      {/* Recharts Forecast Chart */}
-      <div className="bg-[#080d1a] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      {/* Forecast Trajectory Chart */}
+      <div className="clinical-card p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
           <div>
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              Multi-Source Oxygen Depletion Forecast (Next 4 Hours)
+            <h2 className="text-sm font-bold text-[var(--text-primary)] inline-flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[var(--accent-primary)]" />
+              4-Hour Multi-Source Depletion Curve
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Simulated depletion trajectories based on steady {settings.flowRateLpm.toFixed(1)} L/min consumption rate.
+            <p className="text-xs text-[var(--text-muted)] mt-0.5 tabular-nums">
+              Continuous depletion projection at {settings.flowRateLpm.toFixed(1)} L/min flow rate
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 font-mono">Adjust Flow:</span>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <span className="text-xs text-[var(--text-muted)] shrink-0">Flow Rate</span>
             <input
               type="range"
               min="0.5"
@@ -177,98 +143,120 @@ export const PredictiveAnalyticsView: React.FC = () => {
               step="0.5"
               value={settings.flowRateLpm}
               onChange={(e) => setFlowRate(parseFloat(e.target.value))}
-              className="accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg w-28"
+              className="clinical-slider w-28"
             />
-            <span className="text-xs font-mono font-bold text-cyan-300">{settings.flowRateLpm.toFixed(1)} L/m</span>
+            <span className="text-xs font-mono font-bold text-[var(--accent-primary)] tabular-nums shrink-0">
+              {settings.flowRateLpm.toFixed(1)} L/m
+            </span>
           </div>
         </div>
 
-        {/* Chart Container */}
-        <div className="w-full h-80 pt-2">
+        <div className="w-full h-80 pt-1">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="primGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#0891b2" stopOpacity={0.28} />
+                  <stop offset="95%" stopColor="#0891b2" stopOpacity={0.02} />
                 </linearGradient>
                 <linearGradient id="secGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0.02} />
                 </linearGradient>
                 <linearGradient id="combGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="timeLabel" stroke="#64748b" fontSize={11} fontFamily="monospace" />
-              <YAxis stroke="#64748b" fontSize={11} fontFamily="monospace" unit="%" domain={[0, 100]} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#0f172a', 
-                  borderColor: '#334155', 
-                  borderRadius: '0.75rem', 
-                  fontSize: '12px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-                }} 
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="timeLabel" stroke="var(--chart-axis)" fontSize={11} fontFamily="monospace" />
+              <YAxis stroke="var(--chart-axis)" fontSize={11} fontFamily="monospace" unit="%" domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--chart-tooltip-bg)',
+                  borderColor: 'var(--chart-tooltip-border)',
+                  color: 'var(--chart-tooltip-text)',
+                  borderRadius: '0.5rem',
+                  fontSize: '12px'
+                }}
               />
-              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-              <Area type="monotone" dataKey="combinedPercent" name="Total System Oxygen (%)" stroke="#818cf8" strokeWidth={2} fillOpacity={1} fill="url(#combGrad)" />
-              <Area type="monotone" dataKey="primaryPercent" name="Primary Cylinder (A-1)" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#primGrad)" />
-              <Area type="monotone" dataKey="secondaryPercent" name="Backup Cylinder (B-2)" stroke="#14b8a6" strokeWidth={2} fillOpacity={1} fill="url(#secGrad)" />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+              <Area
+                type="monotone"
+                dataKey="combinedPercent"
+                name="Total System Oxygen (%)"
+                stroke="#6366f1"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#combGrad)"
+                isAnimationActive={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="primaryPercent"
+                name="Primary Cylinder (A-1)"
+                stroke="#0891b2"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#primGrad)"
+                isAnimationActive={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="secondaryPercent"
+                name="Backup Cylinder (B-2)"
+                stroke="#0d9488"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#secGrad)"
+                isAnimationActive={false}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Transparent Formula & Physics Assumptions Card */}
+      {/* Equations & Assumptions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        {/* Mathematical Formulas Card */}
-        <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-cyan-300">
-            <Calculator className="w-4 h-4 text-cyan-400" />
-            <span>TRANSPARENT MATHEMATICAL MODEL</span>
+        <div className="clinical-card p-5 space-y-3">
+          <div className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-[var(--accent-primary)]" />
+            Governing Equations
           </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 font-mono text-xs space-y-2 text-slate-300">
-            <div className="text-cyan-400 font-bold">1. Boyle\'s Gas Volume:</div>
-            <div className="pl-3 text-slate-200">V_gas = P_cylinder (bar) × V_water (Liters)</div>
-            <div className="pl-3 text-[11px] text-slate-500">e.g. 150 bar × 4.4L = 660 Liters of gaseous oxygen</div>
+          <div className="clinical-well p-4 font-mono text-xs space-y-2 text-[var(--text-secondary)]">
+            <div className="font-semibold text-[var(--accent-primary)]">1. Boyle&apos;s Gas Volume</div>
+            <div className="pl-3">V_gas = P_cylinder (bar) × V_water (L)</div>
+            <div className="pl-3 text-[11px] text-[var(--text-muted)]">150 bar × 4.4 L = 660 L NTP</div>
 
-            <div className="text-cyan-400 font-bold pt-1">2. Runtime Duration:</div>
-            <div className="pl-3 text-slate-200">T_remaining (minutes) = V_gas (L) / Q_flow (L/min)</div>
-            <div className="pl-3 text-[11px] text-slate-500">e.g. 660L / 2.5 L/min = 264 minutes (4h 24m)</div>
+            <div className="font-semibold text-[var(--accent-primary)] pt-1">2. Remaining Duration</div>
+            <div className="pl-3">T_remaining (min) = V_gas (L) / Q_flow (L/min)</div>
+            <div className="pl-3 text-[11px] text-[var(--text-muted)]">660 L / 2.5 L/min = 264 min (4h 24m)</div>
 
-            <div className="text-cyan-400 font-bold pt-1">3. Auto-Switch Timestamp:</div>
-            <div className="pl-3 text-slate-200">T_switch = Now + ((V_gas - V_threshold) / Q_flow)</div>
+            <div className="font-semibold text-[var(--accent-primary)] pt-1">3. Switchover Timestamp</div>
+            <div className="pl-3">T_switch = Now + ((V_gas − V_threshold) / Q_flow)</div>
           </div>
         </div>
 
-        {/* Physics Assumptions Card */}
-        <div className="p-5 rounded-2xl bg-[#080d1a] border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-teal-300">
-            <CheckCircle2 className="w-4 h-4 text-teal-400" />
-            <span>PHYSICS & ENGINEERING ASSUMPTIONS</span>
+        <div className="clinical-card p-5 space-y-3">
+          <div className="text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            Model Assumptions
           </div>
 
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2 text-xs">
             {predictions.assumptions.map((ass, idx) => (
-              <li key={idx} className="flex items-start gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 mt-1.5 shrink-0" />
-                <span className="font-mono text-[11px]">{ass}</span>
+              <li
+                key={idx}
+                className="clinical-well p-2.5 flex items-start gap-2 font-mono text-[11px] text-[var(--text-secondary)]"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-teal-400 mt-1.5 shrink-0" />
+                <span>{ass}</span>
               </li>
             ))}
           </ul>
-
-          <p className="text-[10px] text-slate-500 leading-tight pt-1">
-            Note: Clinical validation of pressure regulator droop, temperature compensation, and cylinder valve seating required before deploying in real medical hardware.
-          </p>
         </div>
-
       </div>
-
     </div>
   );
 };
